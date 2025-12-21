@@ -75,7 +75,7 @@
             <div class="w-full max-w-md">
                 <div class="bg-white rounded-3xl shadow-xl p-8 lg:p-10">
                     <h2 class="text-2xl font-bold text-gray-900 mb-2">Bienvenue</h2>
-                    <p class="text-gray-500 mb-8">Connectez-vous avec votre compte Microsoft KEYMEX</p>
+                    <p class="text-gray-500 mb-8">Connectez-vous avec votre compte KEYMEX</p>
 
                     @if (session('error'))
                         <div class="mb-6 rounded-2xl bg-red-50 border border-red-200 p-4">
@@ -88,15 +88,12 @@
                         </div>
                     @endif
 
-                    <a href="{{ route('auth.microsoft') }}"
-                       class="flex w-full items-center justify-center gap-3 rounded-2xl bg-white px-6 py-4 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 hover:ring-gray-400 transition-all duration-200">
-                        <svg class="h-5 w-5" viewBox="0 0 21 21" fill="none">
-                            <rect x="1" y="1" width="9" height="9" fill="#F25022"/>
-                            <rect x="11" y="1" width="9" height="9" fill="#7FBA00"/>
-                            <rect x="1" y="11" width="9" height="9" fill="#00A4EF"/>
-                            <rect x="11" y="11" width="9" height="9" fill="#FFB900"/>
+                    <a href="{{ route('auth.keymex') }}"
+                       class="flex w-full items-center justify-center gap-3 rounded-2xl bg-gradient-to-r from-keymex-red to-[#8B1120] px-6 py-4 text-sm font-semibold text-white shadow-lg hover:shadow-xl transition-all duration-200">
+                        <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
                         </svg>
-                        <span>Se connecter avec Microsoft</span>
+                        <span>Se connecter avec Keymex</span>
                     </a>
 
                     @if(config('app.dev_login_enabled'))

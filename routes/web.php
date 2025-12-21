@@ -1,6 +1,6 @@
 <?php
 
-use App\Http\Controllers\Auth\MicrosoftController;
+use App\Http\Controllers\Auth\KeymexAuthController;
 use App\Livewire\Orders\OrderCreate;
 use App\Livewire\Orders\OrderIndex;
 use App\Livewire\Orders\OrderShow;
@@ -16,10 +16,10 @@ Route::get('/', function () {
     return redirect()->route('orders.index');
 });
 
-// Routes d'authentification Microsoft
+// Routes d'authentification Keymex SSO
 Route::get('/login', function () {
     return view('auth.login');
-})->name('login');
+})->name('login')->middleware('guest');
 
 // Dev login (uniquement si DEV_LOGIN_ENABLED=true)
 Route::post('/dev-login', function () {
@@ -31,7 +31,7 @@ Route::post('/dev-login', function () {
         ['email' => 'admin@keymex.fr'],
         [
             'name' => 'Admin Test',
-            'microsoft_id' => 'dev-test-id',
+            'keymex_id' => 'dev-test-id',
             'password' => bcrypt('dev-password'),
         ]
     );
@@ -41,9 +41,18 @@ Route::post('/dev-login', function () {
     return redirect()->route('orders.index');
 })->name('dev.login');
 
-Route::get('/auth/microsoft', [MicrosoftController::class, 'redirect'])->name('auth.microsoft');
-Route::get('/auth/microsoft/callback', [MicrosoftController::class, 'callback']);
-Route::post('/logout', [MicrosoftController::class, 'logout'])->name('logout');
+// Redirection vers Keymex SSO
+Route::get('/auth/keymex', [KeymexAuthController::class, 'redirect'])
+    ->name('auth.keymex')
+    ->middleware('guest');
+
+// Callback apres authentification SSO
+Route::get('/auth/callback', [KeymexAuthController::class, 'callback'])
+    ->name('auth.callback')
+    ->middleware('guest');
+
+// Deconnexion
+Route::post('/logout', [KeymexAuthController::class, 'logout'])->name('logout');
 
 // Routes protégées (staff)
 Route::middleware(['auth'])->group(function () {

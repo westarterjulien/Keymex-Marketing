@@ -42,4 +42,11 @@ return [
         'tenant' => env('MICROSOFT_TENANT_ID', 'common'),
     ],
 
+    'keymex' => [
+        'url' => env('KEYMEX_SSO_URL', 'https://portail.keymeximmo.fr'),
+        'client_id' => env('KEYMEX_CLIENT_ID'),
+        'client_secret' => env('KEYMEX_CLIENT_SECRET'),
+        'redirect_uri' => env('KEYMEX_REDIRECT_URI'),
+    ],
+
 ];
