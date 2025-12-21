@@ -6,8 +6,14 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm ci
 
+# Copy all files needed for Tailwind CSS v4 scanning
 COPY resources ./resources
 COPY vite.config.js ./
+
+# Create dummy directories for @source paths that reference outside resources
+# Tailwind CSS v4 scans these paths for class names
+RUN mkdir -p vendor/laravel/framework/src/Illuminate/Pagination/resources/views \
+    && mkdir -p storage/framework/views
 
 RUN npm run build
 
