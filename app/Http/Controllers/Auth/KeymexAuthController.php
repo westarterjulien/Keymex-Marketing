@@ -56,6 +56,7 @@ class KeymexAuthController extends Controller
                     'name' => $userInfo['name'],
                     'email' => $userInfo['email'],
                     'avatar' => $userInfo['picture'] ?? null,
+                    'password' => bcrypt(str()->random(32)), // Mot de passe aleatoire (non utilise avec SSO)
                 ]
             );
 
