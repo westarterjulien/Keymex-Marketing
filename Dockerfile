@@ -86,9 +86,9 @@ RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cac
 RUN mkdir -p /var/log/supervisor /var/log/php /var/log/nginx
 
 # Create entrypoint script
+# Note: route:cache removed - incompatible with Livewire dynamic routes
 RUN echo '#!/bin/sh' > /entrypoint.sh && \
     echo 'php artisan config:cache' >> /entrypoint.sh && \
-    echo 'php artisan route:cache' >> /entrypoint.sh && \
     echo 'php artisan view:cache' >> /entrypoint.sh && \
     echo 'if [ "$RUN_MIGRATIONS" = "true" ]; then php artisan migrate --force; fi' >> /entrypoint.sh && \
     echo 'exec /usr/bin/supervisord -c /etc/supervisor/conf.d/supervisord.conf' >> /entrypoint.sh && \
