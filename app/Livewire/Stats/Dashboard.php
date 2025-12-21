@@ -38,11 +38,11 @@ class Dashboard extends Component
 
         $validationRate = $batsSent > 0 ? round(($batsValidated / $batsSent) * 100) : 0;
 
-        // SQLite compatible time difference calculation
+        // MySQL compatible time difference calculation
         $avgValidationTime = BatVersion::where('responded_at', '>=', $startDate)
             ->whereNotNull('responded_at')
             ->whereNotNull('sent_at')
-            ->selectRaw('AVG((julianday(responded_at) - julianday(sent_at)) * 24) as avg_hours')
+            ->selectRaw('AVG(TIMESTAMPDIFF(HOUR, sent_at, responded_at)) as avg_hours')
             ->value('avg_hours');
         $avgValidationTime = $avgValidationTime ? round($avgValidationTime, 1) : null;
 
