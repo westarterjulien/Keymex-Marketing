@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Str;
 
 class StandaloneBat extends Model
@@ -13,11 +14,18 @@ class StandaloneBat extends Model
         'advisor_name',
         'advisor_email',
         'advisor_agency',
+        'support_type_id',
+        'format_id',
+        'category_id',
         'file_path',
         'file_name',
         'file_mime',
         'title',
         'description',
+        'grammage',
+        'price',
+        'delivery_time',
+        'quantity',
         'status',
         'client_comment',
         'validation_token',
@@ -57,6 +65,44 @@ class StandaloneBat extends Model
         return $this->belongsTo(User::class, 'created_by');
     }
 
+    public function supportType(): BelongsTo
+    {
+        return $this->belongsTo(SupportType::class);
+    }
+
+    public function format(): BelongsTo
+    {
+        return $this->belongsTo(Format::class);
+    }
+
+    public function category(): BelongsTo
+    {
+        return $this->belongsTo(Category::class);
+    }
+
+    public function logs(): HasMany
+    {
+        return $this->hasMany(StandaloneBatLog::class)->orderBy('created_at', 'desc');
+    }
+
+    public function logEvent(string $event, ?string $comment = null, array $extra = []): StandaloneBatLog
+    {
+        $actorType = 'system';
+        $actorName = null;
+
+        if (auth()->check()) {
+            $actorType = 'staff';
+            $actorName = auth()->user()->name;
+        }
+
+        return $this->logs()->create(array_merge([
+            'event' => $event,
+            'comment' => $comment,
+            'actor_type' => $actorType,
+            'actor_name' => $actorName,
+        ], $extra));
+    }
+
     public function generateNewToken(int $expirationDays = 30): void
     {
         $this->update([
@@ -64,6 +110,8 @@ class StandaloneBat extends Model
             'token_expires_at' => now()->addDays($expirationDays),
             'token_used_at' => null,
         ]);
+
+        $this->logEvent('token_regenerated');
     }
 
     public function isTokenValid(): bool
@@ -90,6 +138,8 @@ class StandaloneBat extends Model
             'sent_at' => now(),
             'token_expires_at' => now()->addDays(30),
         ]);
+
+        $this->logEvent('sent');
     }
 
     public function validate(?string $comment = null): void
@@ -99,6 +149,13 @@ class StandaloneBat extends Model
             'client_comment' => $comment,
             'responded_at' => now(),
             'token_used_at' => now(),
+        ]);
+
+        $this->logs()->create([
+            'event' => 'validated',
+            'comment' => $comment,
+            'actor_type' => 'client',
+            'actor_name' => $this->advisor_name,
         ]);
     }
 
@@ -110,6 +167,13 @@ class StandaloneBat extends Model
             'responded_at' => now(),
             'token_used_at' => now(),
         ]);
+
+        $this->logs()->create([
+            'event' => 'refused',
+            'comment' => $comment,
+            'actor_type' => 'client',
+            'actor_name' => $this->advisor_name,
+        ]);
     }
 
     public function requestModifications(?string $comment = null): void
@@ -119,6 +183,13 @@ class StandaloneBat extends Model
             'client_comment' => $comment,
             'responded_at' => now(),
             'token_used_at' => now(),
+        ]);
+
+        $this->logs()->create([
+            'event' => 'modifications_requested',
+            'comment' => $comment,
+            'actor_type' => 'client',
+            'actor_name' => $this->advisor_name,
         ]);
     }
 

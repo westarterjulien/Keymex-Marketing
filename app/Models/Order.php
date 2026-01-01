@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Order extends Model
 {
@@ -14,6 +15,9 @@ class Order extends Model
         'advisor_email',
         'advisor_agency',
         'status',
+        'ordered_at',
+        'expected_delivery_at',
+        'tracking_url',
         'notes',
         'created_by',
     ];
@@ -21,6 +25,8 @@ class Order extends Model
     protected $casts = [
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
+        'ordered_at' => 'date',
+        'expected_delivery_at' => 'date',
     ];
 
     public function items(): HasMany
@@ -49,6 +55,14 @@ class Order extends Model
     public function creator(): BelongsTo
     {
         return $this->createdBy();
+    }
+
+    /**
+     * BAT autonome source (si la commande a été créée depuis un BAT)
+     */
+    public function standaloneBat(): HasOne
+    {
+        return $this->hasOne(StandaloneBat::class);
     }
 
     public function getStatusLabelAttribute(): string

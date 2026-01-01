@@ -16,9 +16,11 @@ class OrderShow extends Component
     public Order $order;
     public bool $showUploadModal = false;
     public bool $showStatusModal = false;
+    public bool $showTrackingModal = false;
     public $batFile;
     public string $newStatus = '';
     public string $statusComment = '';
+    public ?string $trackingUrl = null;
 
     protected $listeners = ['refreshOrder' => '$refresh'];
 
@@ -31,7 +33,9 @@ class OrderShow extends Component
             'batVersions.tokens',
             'batVersions.sentBy',
             'creator',
+            'standaloneBat.logs',
         ]);
+        $this->trackingUrl = $order->tracking_url;
     }
 
     public function uploadBat(): void
@@ -87,6 +91,27 @@ class OrderShow extends Component
         $this->order->refresh();
 
         session()->flash('success', 'Statut mis à jour avec succès.');
+    }
+
+    public function openTrackingModal(): void
+    {
+        $this->trackingUrl = $this->order->tracking_url;
+        $this->showTrackingModal = true;
+    }
+
+    public function updateTrackingUrl(): void
+    {
+        $this->validate([
+            'trackingUrl' => 'nullable|url|max:500',
+        ], [
+            'trackingUrl.url' => 'Veuillez entrer une URL valide.',
+        ]);
+
+        $this->order->update(['tracking_url' => $this->trackingUrl ?: null]);
+        $this->showTrackingModal = false;
+        $this->order->refresh();
+
+        session()->flash('success', 'Lien de suivi mis à jour.');
     }
 
     public function copyValidationLink(int $batVersionId): void

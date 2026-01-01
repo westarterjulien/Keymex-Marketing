@@ -4,9 +4,8 @@ namespace App\Livewire\Stats;
 
 use App\Models\BatVersion;
 use App\Models\Order;
-use App\Services\MongoPropertyService;
+use App\Models\StandaloneBat;
 use Carbon\Carbon;
-use Illuminate\Support\Facades\DB;
 use Livewire\Component;
 
 class Dashboard extends Component
@@ -27,66 +26,43 @@ class Dashboard extends Component
             default => Carbon::now()->startOfMonth(),
         };
 
+        // Commandes
         $totalOrders = Order::where('created_at', '>=', $startDate)->count();
-        $pendingOrders = Order::where('created_at', '>=', $startDate)->where('status', 'pending')->count();
-        $completedOrders = Order::where('created_at', '>=', $startDate)->where('status', 'completed')->count();
 
-        $batsSent = BatVersion::where('sent_at', '>=', $startDate)->count();
-        $batsValidated = BatVersion::where('responded_at', '>=', $startDate)->where('status', 'validated')->count();
-        $batsRefused = BatVersion::where('responded_at', '>=', $startDate)->where('status', 'refused')->count();
-        $batsModifications = BatVersion::where('responded_at', '>=', $startDate)->where('status', 'modifications_requested')->count();
+        // BAT validés (BatVersion + StandaloneBat validés/convertis)
+        $batVersionsValidated = BatVersion::where('responded_at', '>=', $startDate)
+            ->where('status', 'validated')
+            ->count();
+        $standaloneBatsValidated = StandaloneBat::where('responded_at', '>=', $startDate)
+            ->whereIn('status', ['validated', 'converted'])
+            ->count();
+        $batsValidated = $batVersionsValidated + $standaloneBatsValidated;
 
-        $validationRate = $batsSent > 0 ? round(($batsValidated / $batsSent) * 100) : 0;
+        // BAT refusés/modifications (pour le taux)
+        $batsRefused = BatVersion::where('responded_at', '>=', $startDate)->where('status', 'refused')->count()
+            + StandaloneBat::where('responded_at', '>=', $startDate)->where('status', 'refused')->count();
+        $batsModifications = BatVersion::where('responded_at', '>=', $startDate)->where('status', 'modifications_requested')->count()
+            + StandaloneBat::where('responded_at', '>=', $startDate)->where('status', 'modifications_requested')->count();
 
-        // MySQL compatible time difference calculation
-        $avgValidationTime = BatVersion::where('responded_at', '>=', $startDate)
-            ->whereNotNull('responded_at')
-            ->whereNotNull('sent_at')
-            ->selectRaw('AVG(TIMESTAMPDIFF(HOUR, sent_at, responded_at)) as avg_hours')
-            ->value('avg_hours');
-        $avgValidationTime = $avgValidationTime ? round($avgValidationTime, 1) : null;
+        // Taux de validation
+        $batsWithResponse = $batsValidated + $batsRefused + $batsModifications;
+        $validationRate = $batsWithResponse > 0 ? round(($batsValidated / $batsWithResponse) * 100) : 0;
 
-        $ordersByStatus = Order::where('created_at', '>=', $startDate)
-            ->select('status', DB::raw('count(*) as count'))
-            ->groupBy('status')
-            ->pluck('count', 'status')
-            ->toArray();
-
-        $ordersBySupport = Order::where('orders.created_at', '>=', $startDate)
-            ->join('order_items', 'orders.id', '=', 'order_items.order_id')
-            ->join('support_types', 'order_items.support_type_id', '=', 'support_types.id')
-            ->select('support_types.name', DB::raw('SUM(order_items.quantity) as total'))
-            ->groupBy('support_types.name', 'support_types.id')
-            ->orderByDesc('total')
-            ->limit(5)
-            ->get();
-
-        $recentOrders = Order::with(['items.supportType', 'creator'])
-            ->latest()
-            ->limit(5)
-            ->get();
-
-        $pendingBats = BatVersion::with(['order'])
-            ->where('status', 'pending')
+        // BAT en attente (tous types)
+        $pendingBatVersions = BatVersion::where('status', 'pending')
             ->whereHas('activeToken')
-            ->latest('sent_at')
-            ->limit(5)
-            ->get();
+            ->count();
+        $pendingStandaloneBats = StandaloneBat::whereIn('status', ['pending', 'sent'])
+            ->where('token_expires_at', '>', now())
+            ->whereNull('token_used_at')
+            ->count();
+        $batsPending = $pendingBatVersions + $pendingStandaloneBats;
 
         return view('livewire.stats.dashboard', [
             'totalOrders' => $totalOrders,
-            'pendingOrders' => $pendingOrders,
-            'completedOrders' => $completedOrders,
-            'batsSent' => $batsSent,
             'batsValidated' => $batsValidated,
-            'batsRefused' => $batsRefused,
-            'batsModifications' => $batsModifications,
+            'batsPending' => $batsPending,
             'validationRate' => $validationRate,
-            'avgValidationTime' => $avgValidationTime,
-            'ordersByStatus' => $ordersByStatus,
-            'ordersBySupport' => $ordersBySupport,
-            'recentOrders' => $recentOrders,
-            'pendingBats' => $pendingBats,
         ]);
     }
 }

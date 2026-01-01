@@ -28,6 +28,17 @@
         </div>
     @endif
 
+    @if (session()->has('error'))
+        <div class="rounded-lg bg-red-50 p-4 border border-red-200">
+            <div class="flex items-center gap-3">
+                <svg class="h-5 w-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+                <p class="text-sm text-red-700">{{ session('error') }}</p>
+            </div>
+        </div>
+    @endif
+
     {{-- Filters --}}
     <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
         <div class="flex flex-col sm:flex-row gap-4">
@@ -86,9 +97,9 @@
                                         @endif
                                     </div>
                                     <div>
-                                        <div class="text-sm font-medium text-gray-900">
+                                        <a href="{{ route('standalone-bats.show', $bat) }}" wire:navigate class="text-sm font-medium text-gray-900 hover:text-keymex-red transition-colors">
                                             {{ $bat->title ?: 'BAT #' . $bat->id }}
-                                        </div>
+                                        </a>
                                         <div class="text-xs text-gray-500">{{ $bat->file_name }}</div>
                                     </div>
                                 </div>
@@ -125,9 +136,9 @@
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                 <div class="flex items-center justify-end gap-2">
-                                    {{-- View file --}}
-                                    <a href="{{ Storage::url($bat->file_path) }}" target="_blank"
-                                       class="p-2 text-gray-400 hover:text-keymex-red transition-colors" title="Voir le fichier">
+                                    {{-- View details --}}
+                                    <a href="{{ route('standalone-bats.show', $bat) }}" wire:navigate
+                                       class="p-2 text-gray-400 hover:text-keymex-red transition-colors" title="Voir les details">
                                         <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
@@ -172,8 +183,8 @@
                                         </button>
                                     @endif
 
-                                    {{-- Delete --}}
-                                    @if(!$bat->order_id)
+                                    {{-- Delete (only for draft or sent) --}}
+                                    @if(in_array($bat->status, ['draft', 'sent']))
                                         <button wire:click="confirmDelete({{ $bat->id }})"
                                                 class="p-2 text-gray-400 hover:text-red-600 transition-colors" title="Supprimer">
                                             <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -297,32 +308,51 @@
 
     {{-- Delete Modal --}}
     @if($showDeleteModal)
-        <div class="fixed inset-0 z-50 overflow-y-auto">
-            <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-                <div wire:click="$set('showDeleteModal', false)" class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"></div>
-                <span class="hidden sm:inline-block sm:align-middle sm:h-screen">&#8203;</span>
-                <div class="inline-block align-bottom bg-white rounded-lg px-4 pt-5 pb-4 text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full sm:p-6">
-                    <div class="sm:flex sm:items-start">
-                        <div class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-red-100 sm:mx-0 sm:h-10 sm:w-10">
-                            <svg class="h-6 w-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+        <div class="fixed inset-0 z-50 flex items-center justify-center p-4">
+            {{-- Backdrop --}}
+            <div
+                wire:click="closeDeleteModal"
+                class="absolute inset-0 bg-gray-900/60 backdrop-blur-sm"
+            ></div>
+
+            {{-- Modal Content --}}
+            <div class="relative bg-white rounded-2xl shadow-2xl w-full max-w-md p-6">
+                <div class="flex items-center gap-4 mb-5">
+                    <div class="flex items-center justify-center h-12 w-12 rounded-xl bg-gradient-to-br from-red-400 to-rose-500 shadow-lg">
+                        <svg class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-bold text-gray-900">Supprimer le BAT</h3>
+                        <p class="text-sm text-gray-500">Cette action est irreversible.</p>
+                    </div>
+                </div>
+
+                <div class="flex gap-3">
+                    <button
+                        type="button"
+                        wire:click="closeDeleteModal"
+                        class="flex-1 px-4 py-3 border-2 border-gray-200 text-gray-700 font-semibold rounded-xl hover:bg-gray-50 transition-colors text-sm"
+                    >
+                        Annuler
+                    </button>
+                    <button
+                        type="button"
+                        wire:click="deleteBat"
+                        wire:loading.attr="disabled"
+                        wire:loading.class="opacity-50 cursor-wait"
+                        class="flex-1 px-4 py-3 bg-gradient-to-r from-red-500 to-rose-600 hover:from-red-600 hover:to-rose-700 text-white font-semibold rounded-xl transition-all duration-200 flex items-center justify-center gap-2 text-sm"
+                    >
+                        <span wire:loading.remove wire:target="deleteBat">Supprimer</span>
+                        <span wire:loading wire:target="deleteBat" class="flex items-center gap-2">
+                            <svg class="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
                             </svg>
-                        </div>
-                        <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left">
-                            <h3 class="text-lg leading-6 font-medium text-gray-900">Supprimer le BAT</h3>
-                            <p class="mt-2 text-sm text-gray-500">Cette action est irreversible.</p>
-                        </div>
-                    </div>
-                    <div class="mt-5 sm:mt-4 sm:flex sm:flex-row-reverse gap-3">
-                        <button wire:click="deleteBat" type="button"
-                                class="w-full inline-flex justify-center rounded-lg border border-transparent shadow-sm px-4 py-2 bg-red-600 text-base font-medium text-white hover:bg-red-700 sm:w-auto sm:text-sm">
-                            Supprimer
-                        </button>
-                        <button wire:click="$set('showDeleteModal', false)" type="button"
-                                class="mt-3 w-full inline-flex justify-center rounded-lg border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 sm:mt-0 sm:w-auto sm:text-sm">
-                            Annuler
-                        </button>
-                    </div>
+                            Suppression...
+                        </span>
+                    </button>
                 </div>
             </div>
         </div>

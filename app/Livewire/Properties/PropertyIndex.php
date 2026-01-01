@@ -76,6 +76,9 @@ class PropertyIndex extends Component
             if ($this->activeTab === 'compromis') {
                 $compromisProperties = $this->propertyService->getCompromisProperties();
 
+                // Filtrer les biens sans photos
+                $compromisProperties = $compromisProperties->filter(fn ($p) => !empty($p['photos']));
+
                 if ($this->search) {
                     $search = strtolower($this->search);
                     $compromisProperties = $compromisProperties->filter(function ($property) use ($search) {
@@ -86,6 +89,9 @@ class PropertyIndex extends Component
                 }
             } else {
                 $soldProperties = $this->propertyService->getRecentlySold($this->soldDays);
+
+                // Filtrer les biens sans photos
+                $soldProperties = $soldProperties->filter(fn ($p) => !empty($p['photos']));
 
                 if ($this->search) {
                     $search = strtolower($this->search);
@@ -101,11 +107,12 @@ class PropertyIndex extends Component
             \Log::warning('MongoDB connection error in PropertyIndex: ' . $e->getMessage());
         }
 
-        // Récupérer les IDs des biens avec communication RS
+        // Récupérer les communications RS avec leurs dates
         $propertyIds = $compromisProperties->pluck('id')->merge($soldProperties->pluck('id'))->filter()->unique();
-        $communicatedIds = PropertyCommunication::whereIn('property_mongo_id', $propertyIds)
-            ->pluck('property_mongo_id')
-            ->toArray();
+        $communications = PropertyCommunication::whereIn('property_mongo_id', $propertyIds)
+            ->get()
+            ->keyBy('property_mongo_id');
+        $communicatedIds = $communications->keys()->toArray();
 
         $urgentCount = $compromisProperties->filter(fn ($p) => $p['is_legal_deadline_passed'])->count();
         $nearDeadlineCount = $compromisProperties->filter(function ($p) {
@@ -121,6 +128,7 @@ class PropertyIndex extends Component
             'nearDeadlineCount' => $nearDeadlineCount,
             'mongoDbError' => $this->mongoDbError,
             'communicatedIds' => $communicatedIds,
+            'communications' => $communications,
         ]);
     }
 }

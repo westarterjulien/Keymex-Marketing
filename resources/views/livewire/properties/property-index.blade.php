@@ -4,6 +4,14 @@
             <h1 class="text-2xl font-bold text-gray-900">Biens immobiliers</h1>
             <p class="mt-1 text-sm text-gray-500">Suivi des biens en compromis et vendus</p>
         </div>
+        <div class="mt-4 sm:mt-0">
+            <a href="{{ route('properties.for-sale') }}" class="inline-flex items-center gap-2 text-sm text-gray-600 hover:text-keymex-red">
+                Voir biens a vendre
+                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                </svg>
+            </a>
+        </div>
     </div>
 
     @if($mongoDbError)
@@ -89,8 +97,9 @@
                             $daysLeft = $deadline ? (int) now()->diffInDays($deadline, false) : null;
                             $canCommunicate = $property['is_legal_deadline_passed'];
                             $compromisDelay = $property['compromis_delay_days'] ?? null;
+                            $communication = $communications[$property['id']] ?? null;
                         @endphp
-                        <div class="bg-white shadow rounded-lg overflow-hidden {{ $property['is_legal_deadline_passed'] ? 'ring-2 ring-green-500' : '' }}">
+                        <div class="bg-white shadow rounded-lg overflow-hidden {{ $canCommunicate ? 'ring-2 ring-green-500' : 'opacity-60' }}">
                             {{-- Bandeau statut delai --}}
                             @if($property['is_legal_deadline_passed'])
                                 <div class="bg-green-500 px-3 py-1.5 text-center">
@@ -184,23 +193,21 @@
                                     <span class="text-gray-400">{{ $property['dates']['compromis'] ? \Carbon\Carbon::parse($property['dates']['compromis'])->format('d/m') : '-' }}</span>
                                 </div>
 
-                                {{-- Communication RS (simple checkbox) --}}
+                                {{-- Communication RS --}}
                                 <div class="mt-2 pt-2 border-t border-gray-100">
                                     @if($canCommunicate)
-                                        <label class="flex items-center gap-2 cursor-pointer">
-                                            <input type="checkbox"
-                                                   wire:click="toggleCommunication('{{ $property['id'] }}')"
-                                                   {{ in_array($property['id'], $communicatedIds) ? 'checked' : '' }}
-                                                   class="h-4 w-4 rounded border-gray-300 text-green-600 focus:ring-green-500" />
-                                            <span class="text-xs font-medium text-gray-700">Communication RS</span>
+                                        <label class="flex items-center justify-between cursor-pointer">
+                                            <div class="flex items-center gap-2">
+                                                <input type="checkbox"
+                                                       wire:click="toggleCommunication('{{ $property['id'] }}')"
+                                                       {{ $communication ? 'checked' : '' }}
+                                                       class="h-4 w-4 rounded border-gray-300 text-green-600 focus:ring-green-500" />
+                                                <span class="text-xs font-medium text-gray-700">Communication RS</span>
+                                            </div>
+                                            @if($communication)
+                                                <span class="text-[10px] text-gray-400">{{ $communication->action_date->format('d/m') }}</span>
+                                            @endif
                                         </label>
-                                    @else
-                                        <div class="flex items-center gap-2 text-xs text-gray-400">
-                                            <svg class="h-4 w-4 text-yellow-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                                            </svg>
-                                            <span>Attendre fin delai SRU</span>
-                                        </div>
                                     @endif
                                 </div>
                             </div>

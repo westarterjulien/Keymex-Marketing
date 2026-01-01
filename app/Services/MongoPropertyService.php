@@ -175,6 +175,179 @@ class MongoPropertyService
     }
 
     /**
+     * Récupère les biens à vendre (statut en cours, mandat exclusif, web true)
+     */
+    public function getPropertiesForSale(): Collection
+    {
+        // Récupérer les biens publiés sur le web
+        $properties = DB::connection($this->connection)
+            ->table('properties')
+            ->where('raw_data.status_web', true)
+            ->orderBy('raw_data.created_at', 'desc')
+            ->get();
+
+        // Filtrer en PHP (elemMatch ne fonctionne pas bien avec le driver)
+        $filtered = $properties->filter(function ($property) {
+            $raw = (array) ($property->raw_data ?? []);
+            $criteresText = $raw['criteres_text'] ?? [];
+
+            $hasC121 = false;
+            $hasC124 = false;
+
+            foreach ($criteresText as $c) {
+                $c = (array) $c;
+                $critereId = $c['critere_id'] ?? null;
+                $critereValue = $c['critere_value'] ?? null;
+
+                if ($critereId == 121 && $critereValue === 'EnCours') {
+                    $hasC121 = true;
+                }
+                if ($critereId == 124 && $critereValue === 'Exclusif') {
+                    $hasC124 = true;
+                }
+            }
+
+            return $hasC121 && $hasC124;
+        });
+
+        return $filtered->map(fn ($property) => $this->formatPropertyForSale($property));
+    }
+
+    /**
+     * Formate un document properties pour les biens à vendre
+     */
+    protected function formatPropertyForSale(object $property): array
+    {
+        $rawData = (array) ($property->raw_data ?? []);
+
+        // Helper pour extraire une valeur des critères
+        $getCritereText = function($critereId) use ($rawData) {
+            $criteres = $rawData['criteres_text'] ?? [];
+            foreach ($criteres as $c) {
+                $c = (array) $c;
+                if (($c['critere_id'] ?? null) == $critereId) {
+                    return $c['critere_value'] ?? null;
+                }
+            }
+            return null;
+        };
+
+        $getCritereNumber = function($critereId) use ($rawData) {
+            $criteres = $rawData['criteres_number'] ?? [];
+            foreach ($criteres as $c) {
+                $c = (array) $c;
+                if (($c['critere_id'] ?? null) == $critereId) {
+                    return $c['critere_value'] ?? null;
+                }
+            }
+            return null;
+        };
+
+        // Date de création
+        $creationDate = null;
+        if (isset($rawData['created_at']) && $rawData['created_at']) {
+            try {
+                $creationDate = Carbon::parse($rawData['created_at']);
+            } catch (\Exception $e) {
+                // Ignore
+            }
+        }
+
+        // Date de mandat (critère 163)
+        $mandateDate = null;
+        $mandateDateStr = $getCritereText(163);
+        if ($mandateDateStr) {
+            try {
+                $mandateDate = Carbon::createFromFormat('d/m/Y', $mandateDateStr);
+            } catch (\Exception $e) {
+                // Ignore
+            }
+        }
+
+        // Adresse depuis critères
+        $ville = $getCritereText(54); // Ville
+        $codePostal = $getCritereText(52); // Code postal
+        $adresse = $getCritereText(122); // Adresse
+
+        // Type de bien (critère 27)
+        $typeBienValue = $getCritereText(27);
+        $typeBienMap = [
+            '1' => 'Maison', '2' => 'Appartement', '3' => 'Terrain', '4' => 'Immeuble',
+            '5' => 'Parking/Box', '6' => 'Local commercial', '10' => 'Terrain constructible',
+            '17' => 'Bureau', '22' => 'Villa', '23' => 'Maison de ville', '27' => 'Pavillon',
+            '30' => 'Studio',
+        ];
+        // Chercher le critere_value_name pour le type de bien
+        $typeBien = null;
+        $criteresText = $rawData['criteres_text'] ?? [];
+        foreach ($criteresText as $c) {
+            $c = (array) $c;
+            if (($c['critere_id'] ?? null) == 27) {
+                $typeBien = $c['critere_value_name'] ?? $typeBienMap[$c['critere_value'] ?? ''] ?? 'N/A';
+                break;
+            }
+        }
+        $typeBien = $typeBien ?? 'N/A';
+
+        // Conseiller (suivi_par)
+        $suiviPar = isset($rawData['suivi_par']) ? (array) $rawData['suivi_par'] : [];
+        $advisorName = '';
+        if ($suiviPar) {
+            $prenom = $suiviPar['firstname'] ?? '';
+            $nom = $suiviPar['lastname'] ?? '';
+            $advisorName = trim("$prenom $nom");
+        }
+
+        // Photos
+        $photos = $rawData['products_photos'] ?? [];
+        $photosArray = is_array($photos) ? $photos : (is_object($photos) ? (array) $photos : []);
+        $photoUrls = collect($photosArray)
+            ->sortBy('sort_order')
+            ->map(fn($photo) => is_array($photo) ? ($photo['chemin'] ?? null) : (is_object($photo) ? ($photo->chemin ?? null) : null))
+            ->filter()
+            ->values()
+            ->toArray();
+
+        // Référence (critère 57)
+        $reference = $getCritereText(57);
+
+        // Données numériques
+        $prix = $getCritereNumber(30); // Prix
+        $surface = $getCritereNumber(34); // Surface
+        $nbPieces = $getCritereNumber(33); // Nombre pièces
+        $nbChambres = $getCritereNumber(38); // Chambres
+
+        // ID MongoDB (accessible via ->id ou ->immofacile_id)
+        $mongoId = (string) ($property->id ?? $property->immofacile_id ?? '');
+
+        return [
+            'id' => $mongoId,
+            'reference' => 'IF-' . ($reference ?? 'N/A'),
+            'number' => $reference,
+            'type' => $typeBien,
+            'address' => [
+                'city' => $ville ?? '',
+                'postal_code' => $codePostal ?? '',
+                'street' => $adresse ?? '',
+                'full' => trim(($codePostal ?? '') . ' ' . ($ville ?? '')),
+            ],
+            'surface' => $surface,
+            'rooms' => $nbPieces,
+            'bedrooms' => $nbChambres,
+            'price' => $prix,
+            'advisor' => [
+                'id' => '',
+                'name' => $advisorName,
+            ],
+            'photos' => $photoUrls,
+            'dates' => [
+                'creation' => $creationDate?->format('Y-m-d'),
+                'mandate' => $mandateDate?->format('Y-m-d'),
+            ],
+        ];
+    }
+
+    /**
      * Formate un document MongoDB en tableau exploitable
      */
     protected function formatProperty(object $property): array

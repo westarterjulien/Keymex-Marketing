@@ -142,6 +142,12 @@ class BatIndex extends Component
         $this->showDeleteModal = true;
     }
 
+    public function closeDeleteModal(): void
+    {
+        $this->showDeleteModal = false;
+        $this->deletingBatId = null;
+    }
+
     public function deleteBat(): void
     {
         if (!$this->deletingBatId) {
@@ -150,13 +156,16 @@ class BatIndex extends Component
 
         $bat = StandaloneBat::find($this->deletingBatId);
 
-        if ($bat) {
+        // Only allow deletion for draft or sent BATs
+        if ($bat && in_array($bat->status, ['draft', 'sent'])) {
             // Delete file
             if ($bat->file_path) {
                 Storage::disk('public')->delete($bat->file_path);
             }
             $bat->delete();
             session()->flash('success', 'BAT supprime avec succes.');
+        } elseif ($bat) {
+            session()->flash('error', 'Impossible de supprimer un BAT qui a recu une reponse client.');
         }
 
         $this->showDeleteModal = false;

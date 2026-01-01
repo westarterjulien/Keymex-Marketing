@@ -4,10 +4,12 @@ use App\Http\Controllers\Auth\KeymexAuthController;
 use App\Livewire\Orders\OrderCreate;
 use App\Livewire\Orders\OrderIndex;
 use App\Livewire\Orders\OrderShow;
+use App\Livewire\Properties\PropertyForSale;
 use App\Livewire\Properties\PropertyIndex;
 use App\Livewire\Settings\OrderSettings;
 use App\Livewire\StandaloneBat\BatCreate;
 use App\Livewire\StandaloneBat\BatIndex;
+use App\Livewire\StandaloneBat\BatShow;
 use App\Livewire\StandaloneBat\BatValidation;
 use App\Livewire\Stats\Dashboard;
 use Illuminate\Support\Facades\Route;
@@ -63,6 +65,7 @@ Route::middleware(['auth'])->group(function () {
 
     // Module Biens
     Route::get('/biens', PropertyIndex::class)->name('properties.index');
+    Route::get('/biens/a-vendre', PropertyForSale::class)->name('properties.for-sale');
 
     // Module Statistiques
     Route::get('/statistiques', Dashboard::class)->name('stats.dashboard');
@@ -73,6 +76,7 @@ Route::middleware(['auth'])->group(function () {
     // Module BAT standalone
     Route::get('/bats', BatIndex::class)->name('standalone-bats.index');
     Route::get('/bats/creer', BatCreate::class)->name('standalone-bats.create');
+    Route::get('/bats/{bat}', BatShow::class)->name('standalone-bats.show');
 });
 
 // Route publique pour validation BAT (avec token)

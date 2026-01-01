@@ -135,6 +135,127 @@
             </div>
         </div>
 
+        {{-- Print Details --}}
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <h2 class="text-lg font-semibold text-gray-900 mb-4">Informations d'impression</h2>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {{-- Type de support --}}
+                <div>
+                    <label for="supportTypeId" class="block text-sm font-medium text-gray-700 mb-1">
+                        Type de support
+                    </label>
+                    <select
+                        wire:model.live="supportTypeId"
+                        id="supportTypeId"
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-keymex-red focus:border-keymex-red"
+                    >
+                        <option value="">Selectionner...</option>
+                        @foreach($supportTypes as $type)
+                            <option value="{{ $type->id }}">{{ $type->name }}</option>
+                        @endforeach
+                    </select>
+                </div>
+
+                {{-- Format (depend du type de support) --}}
+                <div>
+                    <label for="formatId" class="block text-sm font-medium text-gray-700 mb-1">
+                        Format
+                    </label>
+                    <select
+                        wire:model="formatId"
+                        id="formatId"
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-keymex-red focus:border-keymex-red disabled:bg-gray-100 disabled:cursor-not-allowed"
+                        @if(!$supportTypeId) disabled @endif
+                    >
+                        <option value="">{{ $supportTypeId ? 'Selectionner...' : 'Choisir d\'abord un support' }}</option>
+                        @foreach($availableFormats as $format)
+                            <option value="{{ $format['id'] }}">{{ $format['name'] }}</option>
+                        @endforeach
+                    </select>
+                </div>
+
+                {{-- Categorie --}}
+                <div>
+                    <label for="categoryId" class="block text-sm font-medium text-gray-700 mb-1">
+                        Categorie
+                    </label>
+                    <select
+                        wire:model="categoryId"
+                        id="categoryId"
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-keymex-red focus:border-keymex-red"
+                    >
+                        <option value="">Selectionner...</option>
+                        @foreach($categories as $category)
+                            <option value="{{ $category->id }}">{{ $category->name }}</option>
+                        @endforeach
+                    </select>
+                </div>
+
+                {{-- Grammage --}}
+                <div>
+                    <label for="grammage" class="block text-sm font-medium text-gray-700 mb-1">
+                        Grammage
+                    </label>
+                    <input
+                        type="text"
+                        wire:model="grammage"
+                        id="grammage"
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-keymex-red focus:border-keymex-red"
+                        placeholder="Ex: 350g, 135g mat..."
+                    >
+                </div>
+
+                {{-- Quantite --}}
+                <div>
+                    <label for="quantity" class="block text-sm font-medium text-gray-700 mb-1">
+                        Quantite
+                    </label>
+                    <input
+                        type="number"
+                        wire:model="quantity"
+                        id="quantity"
+                        min="1"
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-keymex-red focus:border-keymex-red"
+                        placeholder="Ex: 500"
+                    >
+                </div>
+
+                {{-- Prix HT --}}
+                <div>
+                    <label for="price" class="block text-sm font-medium text-gray-700 mb-1">
+                        Prix HT
+                    </label>
+                    <div class="relative">
+                        <input
+                            type="number"
+                            wire:model="price"
+                            id="price"
+                            step="0.01"
+                            min="0"
+                            class="w-full px-4 py-2 pr-12 border border-gray-300 rounded-lg focus:ring-2 focus:ring-keymex-red focus:border-keymex-red"
+                            placeholder="0.00"
+                        >
+                        <span class="absolute inset-y-0 right-0 flex items-center pr-4 text-gray-500">EUR</span>
+                    </div>
+                </div>
+
+                {{-- Delai de livraison --}}
+                <div class="sm:col-span-2 lg:col-span-3">
+                    <label for="deliveryTime" class="block text-sm font-medium text-gray-700 mb-1">
+                        Delai de livraison
+                    </label>
+                    <input
+                        type="text"
+                        wire:model="deliveryTime"
+                        id="deliveryTime"
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-keymex-red focus:border-keymex-red"
+                        placeholder="Ex: 5 jours ouvres..."
+                    >
+                </div>
+            </div>
+        </div>
+
         <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
             <h2 class="text-lg font-semibold text-gray-900 mb-4">Fichier BAT</h2>
 

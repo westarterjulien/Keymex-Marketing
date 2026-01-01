@@ -112,6 +112,72 @@
                 <div class="px-4 py-5 sm:px-6 border-b border-gray-200">
                     <h3 class="text-base font-semibold text-gray-900">Historique des BAT</h3>
                 </div>
+
+                {{-- Standalone BAT Timeline (if order was created from a BAT) --}}
+                @if($order->standaloneBat && $order->standaloneBat->logs->count() > 0)
+                    <div class="px-4 py-4 sm:px-6 bg-purple-50 border-b border-purple-100">
+                        <h4 class="text-sm font-semibold text-purple-800 mb-3 flex items-center gap-2">
+                            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                            Historique BAT source #{{ $order->standaloneBat->id }}
+                        </h4>
+                        <div class="flow-root">
+                            <ul class="-mb-4">
+                                @foreach($order->standaloneBat->logs as $log)
+                                    <li class="relative pb-4">
+                                        @if(!$loop->last)
+                                            <span class="absolute left-3 top-3 -ml-px h-full w-0.5 bg-purple-200" aria-hidden="true"></span>
+                                        @endif
+                                        <div class="relative flex space-x-3">
+                                            <div>
+                                                @php
+                                                    $colors = [
+                                                        'gray' => 'bg-gray-100 text-gray-600',
+                                                        'blue' => 'bg-blue-100 text-blue-600',
+                                                        'green' => 'bg-green-100 text-green-600',
+                                                        'red' => 'bg-red-100 text-red-600',
+                                                        'orange' => 'bg-orange-100 text-orange-600',
+                                                        'purple' => 'bg-purple-100 text-purple-600',
+                                                        'yellow' => 'bg-yellow-100 text-yellow-600',
+                                                        'emerald' => 'bg-emerald-100 text-emerald-600',
+                                                    ];
+                                                    $colorClass = $colors[$log->event_color] ?? $colors['gray'];
+                                                @endphp
+                                                <span class="h-6 w-6 rounded-full flex items-center justify-center ring-2 ring-purple-50 {{ $colorClass }}">
+                                                    <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="{{ $log->event_icon }}"/>
+                                                    </svg>
+                                                </span>
+                                            </div>
+                                            <div class="flex-1 min-w-0">
+                                                <div class="flex items-center justify-between">
+                                                    <p class="text-sm font-medium text-gray-900">{{ $log->event_label }}</p>
+                                                    <time class="text-xs text-gray-500">{{ $log->created_at->format('d/m/Y H:i') }}</time>
+                                                </div>
+                                                <p class="text-xs text-gray-500 mt-0.5">
+                                                    @if($log->actor_type === 'client')
+                                                        Par le client
+                                                    @elseif($log->actor_type === 'staff' && $log->actor_name)
+                                                        Par {{ $log->actor_name }}
+                                                    @else
+                                                        Système
+                                                    @endif
+                                                </p>
+                                                @if($log->comment)
+                                                    <div class="mt-2 p-2 bg-white rounded border border-purple-100">
+                                                        <p class="text-sm text-gray-600">{{ $log->comment }}</p>
+                                                    </div>
+                                                @endif
+                                            </div>
+                                        </div>
+                                    </li>
+                                @endforeach
+                            </ul>
+                        </div>
+                    </div>
+                @endif
+
                 <div class="divide-y divide-gray-200">
                     @forelse($order->batVersions as $bat)
                         <div class="px-4 py-4 sm:px-6">
@@ -230,6 +296,87 @@
                 </div>
             </div>
 
+            {{-- BAT Source --}}
+            @if($order->standaloneBat)
+                <div class="bg-white shadow rounded-lg overflow-hidden">
+                    <div class="px-4 py-3 border-b border-gray-200 bg-purple-50">
+                        <h3 class="text-base font-semibold text-purple-900 flex items-center gap-2">
+                            <svg class="h-5 w-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                            </svg>
+                            BAT source
+                        </h3>
+                    </div>
+                    <div class="p-4">
+                        <p class="text-sm text-gray-600 mb-3">
+                            Cette commande a été créée depuis un BAT autonome.
+                        </p>
+                        <a href="{{ route('standalone-bats.show', $order->standaloneBat) }}"
+                           wire:navigate
+                           class="inline-flex items-center gap-2 text-sm font-medium text-purple-600 hover:text-purple-800">
+                            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
+                            </svg>
+                            Voir le BAT #{{ $order->standaloneBat->id }}
+                        </a>
+                    </div>
+
+                    {{-- File Preview --}}
+                    @if($order->standaloneBat->file_path)
+                        <div class="border-t border-gray-200">
+                            @if(str_starts_with($order->standaloneBat->file_mime, 'image/'))
+                                <div class="bg-gray-100 p-4">
+                                    <img
+                                        src="{{ asset('storage/' . $order->standaloneBat->file_path) }}"
+                                        alt="{{ $order->standaloneBat->file_name }}"
+                                        class="max-w-full h-auto max-h-64 mx-auto rounded-lg shadow"
+                                    >
+                                </div>
+                            @else
+                                <iframe
+                                    src="{{ asset('storage/' . $order->standaloneBat->file_path) }}#toolbar=0&navpanes=0&view=FitH"
+                                    class="w-full h-64 border-0"
+                                ></iframe>
+                            @endif
+                            <div class="px-4 py-3 bg-gray-50 flex items-center justify-between">
+                                <span class="text-sm text-gray-500">{{ $order->standaloneBat->file_name }}</span>
+                                <a href="{{ asset('storage/' . $order->standaloneBat->file_path) }}"
+                                   download="{{ $order->standaloneBat->file_name }}"
+                                   class="text-sm font-medium text-keymex-red hover:text-keymex-red-hover">
+                                    Télécharger
+                                </a>
+                            </div>
+                        </div>
+                    @endif
+                </div>
+            @endif
+
+            {{-- Tracking URL --}}
+            <div class="bg-white shadow rounded-lg">
+                <div class="px-4 py-5 sm:p-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-base font-semibold text-gray-900">Suivi de livraison</h3>
+                        <button wire:click="openTrackingModal" type="button"
+                                class="text-sm font-medium text-keymex-red hover:text-keymex-red-hover">
+                            {{ $order->tracking_url ? 'Modifier' : 'Ajouter' }}
+                        </button>
+                    </div>
+                    @if($order->tracking_url)
+                        <a href="{{ $order->tracking_url }}"
+                           target="_blank"
+                           rel="noopener noreferrer"
+                           class="inline-flex items-center gap-2 text-sm text-blue-600 hover:text-blue-800 break-all">
+                            <svg class="h-4 w-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
+                            </svg>
+                            Suivre le colis
+                        </a>
+                    @else
+                        <p class="text-sm text-gray-400 italic">Aucun lien de suivi</p>
+                    @endif
+                </div>
+            </div>
+
             <div class="bg-white shadow rounded-lg">
                 <div class="px-4 py-5 sm:p-6">
                     <h3 class="text-base font-semibold text-gray-900 mb-4">Informations</h3>
@@ -238,6 +385,18 @@
                             <dt class="text-sm font-medium text-gray-500">Créée par</dt>
                             <dd class="mt-1 text-sm text-gray-900">{{ $order->creator?->name ?? 'Système' }}</dd>
                         </div>
+                        @if($order->ordered_at)
+                            <div>
+                                <dt class="text-sm font-medium text-gray-500">Date de commande</dt>
+                                <dd class="mt-1 text-sm text-gray-900">{{ $order->ordered_at->format('d/m/Y') }}</dd>
+                            </div>
+                        @endif
+                        @if($order->expected_delivery_at)
+                            <div>
+                                <dt class="text-sm font-medium text-gray-500">Livraison prévue</dt>
+                                <dd class="mt-1 text-sm text-gray-900">{{ $order->expected_delivery_at->format('d/m/Y') }}</dd>
+                            </div>
+                        @endif
                         <div>
                             <dt class="text-sm font-medium text-gray-500">Date de création</dt>
                             <dd class="mt-1 text-sm text-gray-900">{{ $order->created_at->format('d/m/Y H:i') }}</dd>
@@ -337,6 +496,55 @@
                             <button type="submit"
                                     class="rounded-md bg-keymex-red px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-keymex-red-hover">
                                 Mettre à jour
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    @endif
+
+    @if($showTrackingModal)
+        <div class="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+            <div class="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
+                <div class="fixed inset-0 bg-gray-500/75 transition-opacity" wire:click="$set('showTrackingModal', false)"></div>
+
+                <div class="relative transform overflow-hidden rounded-lg bg-white px-4 pb-4 pt-5 text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg sm:p-6">
+                    <form wire:submit="updateTrackingUrl">
+                        <div>
+                            <div class="flex items-center gap-3 mb-4">
+                                <div class="flex items-center justify-center h-10 w-10 rounded-full bg-blue-100">
+                                    <svg class="h-5 w-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                                    </svg>
+                                </div>
+                                <div>
+                                    <h3 class="text-lg font-semibold text-gray-900" id="modal-title">Lien de suivi</h3>
+                                    <p class="text-sm text-gray-500">Ajoutez le lien de suivi du transporteur</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mt-4">
+                            <label for="trackingUrl" class="block text-sm font-medium text-gray-700">URL de suivi</label>
+                            <input wire:model="trackingUrl"
+                                   type="url"
+                                   id="trackingUrl"
+                                   placeholder="https://..."
+                                   class="mt-2 block w-full rounded-md border-0 py-2 px-3 text-gray-900 ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-keymex-red sm:text-sm">
+                            @error('trackingUrl')
+                                <p class="mt-2 text-sm text-red-600">{{ $message }}</p>
+                            @enderror
+                        </div>
+
+                        <div class="mt-6 flex justify-end gap-3">
+                            <button wire:click="$set('showTrackingModal', false)" type="button"
+                                    class="rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50">
+                                Annuler
+                            </button>
+                            <button type="submit"
+                                    class="rounded-md bg-keymex-red px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-keymex-red-hover">
+                                Enregistrer
                             </button>
                         </div>
                     </form>

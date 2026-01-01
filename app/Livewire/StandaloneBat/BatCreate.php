@@ -2,7 +2,10 @@
 
 namespace App\Livewire\StandaloneBat;
 
+use App\Models\Category;
+use App\Models\Format;
 use App\Models\StandaloneBat;
+use App\Models\SupportType;
 use App\Services\MongoAdvisorService;
 use Livewire\Component;
 use Livewire\WithFileUploads;
@@ -20,7 +23,17 @@ class BatCreate extends Component
     // BAT details
     public string $title = '';
     public string $description = '';
+    public ?int $supportTypeId = null;
+    public ?int $formatId = null;
+    public ?int $categoryId = null;
+    public string $grammage = '';
+    public ?string $price = null;
+    public string $deliveryTime = '';
+    public ?int $quantity = null;
     public $batFile;
+
+    // Formats disponibles selon le type de support
+    public array $availableFormats = [];
 
     protected MongoAdvisorService $advisorService;
 
@@ -61,6 +74,20 @@ class BatCreate extends Component
         $this->advisorResults = [];
     }
 
+    public function updatedSupportTypeId(): void
+    {
+        $this->formatId = null;
+        $this->availableFormats = [];
+
+        if ($this->supportTypeId) {
+            $this->availableFormats = Format::where('support_type_id', $this->supportTypeId)
+                ->active()
+                ->orderBy('sort_order')
+                ->get()
+                ->toArray();
+        }
+    }
+
     public function save()
     {
         $this->validate([
@@ -81,19 +108,29 @@ class BatCreate extends Component
         $filePath = $this->batFile->storeAs('standalone-bats', $fileName, 'public');
 
         // Create BAT
-        StandaloneBat::create([
+        $bat = StandaloneBat::create([
             'advisor_mongo_id' => $this->selectedAdvisor['id'],
             'advisor_name' => $this->selectedAdvisor['fullname'],
             'advisor_email' => $this->selectedAdvisor['email'],
             'advisor_agency' => $this->selectedAdvisor['agency'] ?? null,
+            'support_type_id' => $this->supportTypeId ?: null,
+            'format_id' => $this->formatId ?: null,
+            'category_id' => $this->categoryId ?: null,
             'file_path' => $filePath,
             'file_name' => $this->batFile->getClientOriginalName(),
             'file_mime' => $this->batFile->getMimeType(),
             'title' => $this->title ?: null,
             'description' => $this->description ?: null,
+            'grammage' => $this->grammage ?: null,
+            'price' => $this->price ? (float) $this->price : null,
+            'delivery_time' => $this->deliveryTime ?: null,
+            'quantity' => $this->quantity ?: null,
             'status' => 'draft',
             'created_by' => auth()->id(),
         ]);
+
+        // Log creation
+        $bat->logEvent('created');
 
         session()->flash('success', 'BAT cree avec succes. Vous pouvez maintenant l\'envoyer pour validation.');
 
@@ -102,6 +139,9 @@ class BatCreate extends Component
 
     public function render()
     {
-        return view('livewire.standalone-bat.bat-create');
+        return view('livewire.standalone-bat.bat-create', [
+            'supportTypes' => SupportType::active()->orderBy('sort_order')->get(),
+            'categories' => Category::active()->orderBy('sort_order')->get(),
+        ]);
     }
 }
