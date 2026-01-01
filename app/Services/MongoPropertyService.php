@@ -17,6 +17,106 @@ class MongoPropertyService
     protected array $photosCache = [];
 
     /**
+     * Récupère les KPI des compromis pour une période donnée
+     * Retourne count et sum des prix (C.A)
+     */
+    public function getCompromisStats(Carbon $startDate, Carbon $endDate): array
+    {
+        $query = DB::connection($this->connection)
+            ->table($this->collection)
+            ->where('raw_data.status.text', 'Compromis')
+            ->where('raw_data.date_compromis', '>=', $startDate->format('Y-m-d'))
+            ->where('raw_data.date_compromis', '<=', $endDate->format('Y-m-d'))
+            ->where(function($q) {
+                $q->whereNull('raw_data.date_annulation')
+                  ->orWhere('raw_data.date_annulation', '')
+                  ->orWhere('raw_data.date_annulation', '0000-00-00');
+            })
+            ->get();
+
+        $count = $query->count();
+        $totalPrice = $query->sum(fn($p) => (float) ($p->raw_data['real_estate_price'] ?? 0));
+        $totalCommission = $query->sum(fn($p) =>
+            (float) ($p->raw_data['seller_fees'] ?? 0) + (float) ($p->raw_data['buyer_fees'] ?? 0)
+        );
+
+        return [
+            'count' => $count,
+            'total_price' => $totalPrice,
+            'total_commission' => $totalCommission,
+        ];
+    }
+
+    /**
+     * Récupère les KPI des mandats exclusifs pour une période donnée
+     * La date de mandat est au format dd/mm/yyyy dans mandate_date
+     */
+    public function getMandatesExclusStats(Carbon $startDate, Carbon $endDate): array
+    {
+        // On récupère tous les biens avec mandate_date dans la période
+        // Les mandats sont dans sale_files, le type de mandat (exclusif) est à vérifier
+        $query = DB::connection($this->connection)
+            ->table($this->collection)
+            ->whereNotNull('raw_data.mandate_date')
+            ->where('raw_data.mandate_date', '!=', '')
+            ->where(function($q) {
+                $q->whereNull('raw_data.date_annulation')
+                  ->orWhere('raw_data.date_annulation', '')
+                  ->orWhere('raw_data.date_annulation', '0000-00-00');
+            })
+            ->get();
+
+        // Filtrer en PHP car la date est au format dd/mm/yyyy
+        $filtered = $query->filter(function($item) use ($startDate, $endDate) {
+            $mandateDateStr = $item->raw_data['mandate_date'] ?? null;
+            if (!$mandateDateStr) return false;
+
+            try {
+                $mandateDate = Carbon::createFromFormat('d/m/Y', $mandateDateStr);
+                return $mandateDate->between($startDate, $endDate);
+            } catch (\Exception $e) {
+                return false;
+            }
+        });
+
+        // On considère que les mandats dans sale_files sont des mandats exclusifs
+        // car seuls les biens avec mandat exclusif arrivent au compromis/vente
+        return [
+            'count' => $filtered->count(),
+        ];
+    }
+
+    /**
+     * Récupère les KPI des ventes (actes signés) pour une période donnée
+     */
+    public function getVentesStats(Carbon $startDate, Carbon $endDate): array
+    {
+        $query = DB::connection($this->connection)
+            ->table($this->collection)
+            ->where('raw_data.status.text', 'Vendu par l\'agence')
+            ->where('raw_data.date_acte', '>=', $startDate->format('Y-m-d'))
+            ->where('raw_data.date_acte', '<=', $endDate->format('Y-m-d'))
+            ->where(function($q) {
+                $q->whereNull('raw_data.date_annulation')
+                  ->orWhere('raw_data.date_annulation', '')
+                  ->orWhere('raw_data.date_annulation', '0000-00-00');
+            })
+            ->get();
+
+        $count = $query->count();
+        $totalPrice = $query->sum(fn($p) => (float) ($p->raw_data['real_estate_price'] ?? 0));
+        $totalCommission = $query->sum(fn($p) =>
+            (float) ($p->raw_data['seller_fees'] ?? 0) + (float) ($p->raw_data['buyer_fees'] ?? 0)
+        );
+
+        return [
+            'count' => $count,
+            'total_price' => $totalPrice,
+            'total_commission' => $totalCommission,
+        ];
+    }
+
+    /**
      * Récupère les compromis en cours (biens sous compromis non encore vendus)
      */
     public function getCompromisProperties(): Collection
