@@ -9,47 +9,69 @@ use Livewire\Component;
 class HebdoBizMonthly extends Component
 {
     public bool $mongoDbError = false;
+    public int $monthOffset = 0; // 0 = mois courant, -1 = mois precedent, etc.
 
     protected MongoPropertyService $propertyService;
+
+    protected $queryString = [
+        'monthOffset' => ['except' => 0],
+    ];
 
     public function boot(MongoPropertyService $propertyService): void
     {
         $this->propertyService = $propertyService;
     }
 
-    /**
-     * Calcule les dates du mois en cours
-     */
-    protected function getCurrentMonthDates(): array
+    public function previousMonth(): void
     {
-        $now = Carbon::now();
+        $this->monthOffset--;
+    }
+
+    public function nextMonth(): void
+    {
+        if ($this->monthOffset < 0) {
+            $this->monthOffset++;
+        }
+    }
+
+    public function currentMonth(): void
+    {
+        $this->monthOffset = 0;
+    }
+
+    /**
+     * Calcule les dates du mois selectionne
+     */
+    protected function getSelectedMonthDates(): array
+    {
+        $date = Carbon::now()->addMonths($this->monthOffset);
         return [
-            'start' => $now->copy()->startOfMonth(),
-            'end' => $now->copy()->endOfMonth(),
+            'start' => $date->copy()->startOfMonth(),
+            'end' => $date->copy()->endOfMonth(),
         ];
     }
 
     /**
-     * Calcule les dates du mois précédent
+     * Calcule les dates du mois precedent (par rapport a la selection)
      */
     protected function getPreviousMonthDates(): array
     {
-        $now = Carbon::now();
+        $date = Carbon::now()->addMonths($this->monthOffset)->subMonth();
         return [
-            'start' => $now->copy()->subMonth()->startOfMonth(),
-            'end' => $now->copy()->subMonth()->endOfMonth(),
+            'start' => $date->copy()->startOfMonth(),
+            'end' => $date->copy()->endOfMonth(),
         ];
     }
 
     /**
-     * Calcule les dates du même mois l'année précédente
+     * Calcule les dates du meme mois l'annee precedente
      */
     protected function getSameMonthLastYearDates(): array
     {
-        $now = Carbon::now();
+        $date = Carbon::now()->addMonths($this->monthOffset)->subYear();
         return [
-            'start' => $now->copy()->subYear()->startOfMonth(),
-            'end' => $now->copy()->subYear()->endOfMonth(),
+            'start' => $date->copy()->startOfMonth(),
+            'end' => $date->copy()->endOfMonth(),
         ];
     }
 
@@ -68,8 +90,8 @@ class HebdoBizMonthly extends Component
     {
         $this->mongoDbError = false;
 
-        // Périodes
-        $currentMonth = $this->getCurrentMonthDates();
+        // Periodes
+        $selectedMonth = $this->getSelectedMonthDates();
         $previousMonth = $this->getPreviousMonthDates();
         $lastYearMonth = $this->getSameMonthLastYearDates();
 
@@ -88,12 +110,12 @@ class HebdoBizMonthly extends Component
 
         try {
             // C.A Compromis
-            $compromisData['current'] = $this->propertyService->getCompromisStats($currentMonth['start'], $currentMonth['end']);
+            $compromisData['current'] = $this->propertyService->getCompromisStats($selectedMonth['start'], $selectedMonth['end']);
             $compromisData['previous'] = $this->propertyService->getCompromisStats($previousMonth['start'], $previousMonth['end']);
             $compromisData['lastYear'] = $this->propertyService->getCompromisStats($lastYearMonth['start'], $lastYearMonth['end']);
 
             // Mandats Exclusifs
-            $mandatesData['current'] = $this->propertyService->getMandatesExclusStats($currentMonth['start'], $currentMonth['end']);
+            $mandatesData['current'] = $this->propertyService->getMandatesExclusStats($selectedMonth['start'], $selectedMonth['end']);
             $mandatesData['previous'] = $this->propertyService->getMandatesExclusStats($previousMonth['start'], $previousMonth['end']);
             $mandatesData['lastYear'] = $this->propertyService->getMandatesExclusStats($lastYearMonth['start'], $lastYearMonth['end']);
         } catch (\Exception $e) {
@@ -110,12 +132,13 @@ class HebdoBizMonthly extends Component
         ];
 
         return view('livewire.kpi.hebdo-biz-monthly', [
-            'currentMonth' => $currentMonth,
+            'selectedMonth' => $selectedMonth,
             'previousMonth' => $previousMonth,
             'lastYearMonth' => $lastYearMonth,
             'compromisData' => $compromisData,
             'mandatesData' => $mandatesData,
             'variations' => $variations,
+            'isCurrentMonth' => $this->monthOffset === 0,
         ]);
     }
 }

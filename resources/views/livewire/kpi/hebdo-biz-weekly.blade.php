@@ -3,7 +3,7 @@
         <div>
             <h1 class="text-2xl font-bold text-gray-900">Hebdo Biz - Hebdomadaire</h1>
             <p class="mt-1 text-sm text-gray-500">
-                Semaine du {{ $currentWeek['start']->format('d/m') }} au {{ $currentWeek['end']->format('d/m/Y') }}
+                Semaine {{ $selectedWeek['start']->weekOfYear }} - {{ $selectedWeek['start']->year }}
             </p>
         </div>
         <div class="mt-4 sm:mt-0 flex items-center gap-3">
@@ -15,6 +15,39 @@
                 Vue mensuelle
             </a>
         </div>
+    </div>
+
+    {{-- Navigation semaines --}}
+    <div class="mt-6 flex items-center justify-center gap-4">
+        <button wire:click="previousWeek"
+                class="inline-flex items-center gap-2 rounded-md bg-white px-4 py-2 text-sm font-medium text-gray-700 ring-1 ring-inset ring-gray-300 hover:bg-gray-50">
+            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+            </svg>
+            Semaine precedente
+        </button>
+
+        <div class="text-center min-w-[200px]">
+            <p class="text-lg font-semibold text-gray-900">
+                {{ $selectedWeek['start']->format('d/m') }} - {{ $selectedWeek['end']->format('d/m/Y') }}
+            </p>
+            @if(!$isCurrentWeek)
+                <button wire:click="currentWeek" class="text-xs text-keymex-red hover:underline">
+                    Revenir a aujourd'hui
+                </button>
+            @else
+                <span class="text-xs text-green-600 font-medium">Semaine en cours</span>
+            @endif
+        </div>
+
+        <button wire:click="nextWeek"
+                @if($isCurrentWeek) disabled @endif
+                class="inline-flex items-center gap-2 rounded-md bg-white px-4 py-2 text-sm font-medium text-gray-700 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">
+            Semaine suivante
+            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+            </svg>
+        </button>
     </div>
 
     @if($mongoDbError)
@@ -40,11 +73,11 @@
         <h2 class="text-lg font-semibold text-gray-900 mb-4">C.A Compromis</h2>
 
         <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
-            {{-- Semaine en cours --}}
+            {{-- Semaine sélectionnée --}}
             <div class="bg-white shadow rounded-lg overflow-hidden">
                 <div class="bg-keymex-red px-4 py-3">
-                    <h3 class="text-sm font-medium text-white">Semaine en cours</h3>
-                    <p class="text-xs text-red-100">{{ $currentWeek['start']->format('d/m') }} - {{ $currentWeek['end']->format('d/m') }}</p>
+                    <h3 class="text-sm font-medium text-white">Semaine selectionnee</h3>
+                    <p class="text-xs text-red-100">{{ $selectedWeek['start']->format('d/m') }} - {{ $selectedWeek['end']->format('d/m') }}</p>
                 </div>
                 <div class="p-6">
                     <p class="text-3xl font-bold text-gray-900">
@@ -53,13 +86,16 @@
                     <p class="mt-1 text-sm text-gray-500">
                         {{ $compromisData['current']['count'] }} compromis
                     </p>
+                    <p class="mt-1 text-xs text-gray-400">
+                        Commission: {{ number_format($compromisData['current']['total_commission'] / 1000, 1, ',', ' ') }} k
+                    </p>
                 </div>
             </div>
 
             {{-- Semaine précédente --}}
             <div class="bg-white shadow rounded-lg overflow-hidden">
                 <div class="bg-gray-100 px-4 py-3">
-                    <h3 class="text-sm font-medium text-gray-700">Semaine precedente</h3>
+                    <h3 class="text-sm font-medium text-gray-700">Semaine precedente (S-1)</h3>
                     <p class="text-xs text-gray-500">{{ $previousWeek['start']->format('d/m') }} - {{ $previousWeek['end']->format('d/m') }}</p>
                 </div>
                 <div class="p-6">
@@ -123,11 +159,11 @@
         <h2 class="text-lg font-semibold text-gray-900 mb-4">Mandats Exclusifs</h2>
 
         <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
-            {{-- Semaine en cours --}}
+            {{-- Semaine sélectionnée --}}
             <div class="bg-white shadow rounded-lg overflow-hidden">
                 <div class="bg-keymex-red px-4 py-3">
-                    <h3 class="text-sm font-medium text-white">Semaine en cours</h3>
-                    <p class="text-xs text-red-100">{{ $currentWeek['start']->format('d/m') }} - {{ $currentWeek['end']->format('d/m') }}</p>
+                    <h3 class="text-sm font-medium text-white">Semaine selectionnee</h3>
+                    <p class="text-xs text-red-100">{{ $selectedWeek['start']->format('d/m') }} - {{ $selectedWeek['end']->format('d/m') }}</p>
                 </div>
                 <div class="p-6">
                     <p class="text-3xl font-bold text-gray-900">
@@ -140,7 +176,7 @@
             {{-- Semaine précédente --}}
             <div class="bg-white shadow rounded-lg overflow-hidden">
                 <div class="bg-gray-100 px-4 py-3">
-                    <h3 class="text-sm font-medium text-gray-700">Semaine precedente</h3>
+                    <h3 class="text-sm font-medium text-gray-700">Semaine precedente (S-1)</h3>
                     <p class="text-xs text-gray-500">{{ $previousWeek['start']->format('d/m') }} - {{ $previousWeek['end']->format('d/m') }}</p>
                 </div>
                 <div class="p-6">

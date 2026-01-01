@@ -3,7 +3,7 @@
         <div>
             <h1 class="text-2xl font-bold text-gray-900">Hebdo Biz - Mensuel</h1>
             <p class="mt-1 text-sm text-gray-500">
-                {{ $currentMonth['start']->translatedFormat('F Y') }}
+                {{ $selectedMonth['start']->translatedFormat('F Y') }}
             </p>
         </div>
         <div class="mt-4 sm:mt-0 flex items-center gap-3">
@@ -15,6 +15,39 @@
                 Vue hebdomadaire
             </a>
         </div>
+    </div>
+
+    {{-- Navigation mois --}}
+    <div class="mt-6 flex items-center justify-center gap-4">
+        <button wire:click="previousMonth"
+                class="inline-flex items-center gap-2 rounded-md bg-white px-4 py-2 text-sm font-medium text-gray-700 ring-1 ring-inset ring-gray-300 hover:bg-gray-50">
+            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+            </svg>
+            Mois precedent
+        </button>
+
+        <div class="text-center min-w-[200px]">
+            <p class="text-lg font-semibold text-gray-900">
+                {{ $selectedMonth['start']->translatedFormat('F Y') }}
+            </p>
+            @if(!$isCurrentMonth)
+                <button wire:click="currentMonth" class="text-xs text-keymex-red hover:underline">
+                    Revenir au mois en cours
+                </button>
+            @else
+                <span class="text-xs text-green-600 font-medium">Mois en cours</span>
+            @endif
+        </div>
+
+        <button wire:click="nextMonth"
+                @if($isCurrentMonth) disabled @endif
+                class="inline-flex items-center gap-2 rounded-md bg-white px-4 py-2 text-sm font-medium text-gray-700 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">
+            Mois suivant
+            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+            </svg>
+        </button>
     </div>
 
     @if($mongoDbError)
@@ -40,11 +73,11 @@
         <h2 class="text-lg font-semibold text-gray-900 mb-4">C.A Compromis</h2>
 
         <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
-            {{-- Mois en cours --}}
+            {{-- Mois selectionne --}}
             <div class="bg-white shadow rounded-lg overflow-hidden">
                 <div class="bg-keymex-red px-4 py-3">
-                    <h3 class="text-sm font-medium text-white">Mois en cours</h3>
-                    <p class="text-xs text-red-100">{{ $currentMonth['start']->translatedFormat('F Y') }}</p>
+                    <h3 class="text-sm font-medium text-white">Mois selectionne</h3>
+                    <p class="text-xs text-red-100">{{ $selectedMonth['start']->translatedFormat('F Y') }}</p>
                 </div>
                 <div class="p-6">
                     <p class="text-3xl font-bold text-gray-900">
@@ -123,11 +156,11 @@
         <h2 class="text-lg font-semibold text-gray-900 mb-4">Mandats Exclusifs</h2>
 
         <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
-            {{-- Mois en cours --}}
+            {{-- Mois selectionne --}}
             <div class="bg-white shadow rounded-lg overflow-hidden">
                 <div class="bg-keymex-red px-4 py-3">
-                    <h3 class="text-sm font-medium text-white">Mois en cours</h3>
-                    <p class="text-xs text-red-100">{{ $currentMonth['start']->translatedFormat('F Y') }}</p>
+                    <h3 class="text-sm font-medium text-white">Mois selectionne</h3>
+                    <p class="text-xs text-red-100">{{ $selectedMonth['start']->translatedFormat('F Y') }}</p>
                 </div>
                 <div class="p-6">
                     <p class="text-3xl font-bold text-gray-900">
