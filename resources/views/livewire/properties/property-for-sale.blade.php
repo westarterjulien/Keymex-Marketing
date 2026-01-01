@@ -1,17 +1,7 @@
 <div>
-    <div class="sm:flex sm:items-center sm:justify-between">
-        <div>
-            <h1 class="text-2xl font-bold text-gray-900">Biens a vendre</h1>
-            <p class="mt-1 text-sm text-gray-500">Mandats exclusifs en cours de commercialisation</p>
-        </div>
-        <div class="mt-4 sm:mt-0">
-            <a href="{{ route('properties.index') }}" class="inline-flex items-center gap-2 text-sm text-gray-600 hover:text-keymex-red">
-                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-                </svg>
-                Voir compromis / vendus
-            </a>
-        </div>
+    <div>
+        <h1 class="text-2xl font-bold text-gray-900">Biens a vendre</h1>
+        <p class="mt-1 text-sm text-gray-500">Mandats exclusifs en cours de commercialisation</p>
     </div>
 
     @if($mongoDbError)
