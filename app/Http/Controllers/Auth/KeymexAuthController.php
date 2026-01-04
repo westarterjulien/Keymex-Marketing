@@ -3,10 +3,12 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Models\SsoGroupMapping;
 use App\Models\User;
 use App\Services\KeymexSSOService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 
 class KeymexAuthController extends Controller
 {
@@ -49,6 +51,18 @@ class KeymexAuthController extends Controller
             // Recuperation des infos utilisateur
             $userInfo = $this->sso->getUserInfo($tokens['access_token']);
 
+            // Extraire les groupes SSO de l'utilisateur
+            $ssoGroups = $userInfo['groups'] ?? [];
+
+            // Determiner le role en fonction des groupes SSO
+            $role = SsoGroupMapping::getRoleForGroups($ssoGroups);
+
+            Log::info('SSO Login', [
+                'user' => $userInfo['email'],
+                'groups' => $ssoGroups,
+                'assigned_role' => $role,
+            ]);
+
             // Creation ou mise a jour de l'utilisateur local
             $user = User::updateOrCreate(
                 ['keymex_id' => $userInfo['sub']],
@@ -56,6 +70,8 @@ class KeymexAuthController extends Controller
                     'name' => $userInfo['name'],
                     'email' => $userInfo['email'],
                     'avatar' => $userInfo['picture'] ?? null,
+                    'role' => $role,
+                    'sso_groups' => $ssoGroups,
                     'password' => bcrypt(str()->random(32)), // Mot de passe aleatoire (non utilise avec SSO)
                 ]
             );
