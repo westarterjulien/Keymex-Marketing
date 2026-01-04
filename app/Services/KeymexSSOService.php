@@ -131,4 +131,22 @@ class KeymexSSOService
 
         return $response->successful();
     }
+
+    /**
+     * Recupere la liste des groupes SSO disponibles
+     */
+    public function getGroups(): array
+    {
+        $response = Http::get($this->baseUrl . '/api/oauth/groups', [
+            'client_id' => $this->clientId,
+            'client_secret' => $this->clientSecret,
+        ]);
+
+        if (!$response->successful()) {
+            throw new \Exception('Erreur lors de la recuperation des groupes: ' . $response->body());
+        }
+
+        $data = $response->json();
+        return $data['groups'] ?? [];
+    }
 }
