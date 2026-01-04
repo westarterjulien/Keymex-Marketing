@@ -142,8 +142,12 @@ class KeymexSSOService
             'client_secret' => $this->clientSecret,
         ]);
 
+        if ($response->status() === 404) {
+            throw new \Exception('L\'endpoint /api/oauth/groups n\'existe pas sur le portail SSO. Contactez l\'administrateur du portail.');
+        }
+
         if (!$response->successful()) {
-            throw new \Exception('Erreur lors de la recuperation des groupes: ' . $response->body());
+            throw new \Exception('Erreur lors de la recuperation des groupes (HTTP ' . $response->status() . ')');
         }
 
         $data = $response->json();

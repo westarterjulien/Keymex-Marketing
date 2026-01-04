@@ -12,7 +12,20 @@
 @source '../**/*.js';
 
 @theme {
-    /* Couleurs principales KEYMEX */
+    /* Palette KEYMEX complète */
+    --color-keymex-50: #fef2f2;
+    --color-keymex-100: #fee2e2;
+    --color-keymex-200: #fecaca;
+    --color-keymex-300: #f87171;
+    --color-keymex-400: #dc3545;
+    --color-keymex-500: #c41e2a;
+    --color-keymex-600: #ae1d29;
+    --color-keymex-700: #8a1720;
+    --color-keymex-800: #6b1118;
+    --color-keymex-900: #4a0d11;
+    --color-keymex-950: #2d0609;
+
+    /* Couleurs principales KEYMEX (legacy) */
     --color-keymex-red: #ae1d29;
     --color-keymex-red-hover: #8a1720;
     --color-keymex-red-light: #dc3545;
