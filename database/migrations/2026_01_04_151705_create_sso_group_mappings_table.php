@@ -16,8 +16,7 @@ return new class extends Migration
             $table->integer('sso_group_id')->unique();
             $table->string('sso_group_name');
             $table->string('sso_group_description')->nullable();
-            $table->string('local_role')->nullable(); // super-admin, admin, editor, viewer
-            $table->integer('priority')->default(0); // Plus élevé = plus prioritaire
+            $table->boolean('is_allowed')->default(false); // Groupe autorisé à se connecter
             $table->timestamps();
         });
     }

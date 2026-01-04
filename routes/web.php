@@ -7,6 +7,7 @@ use App\Livewire\Orders\OrderShow;
 use App\Livewire\Properties\PropertyForSale;
 use App\Livewire\Properties\PropertyIndex;
 use App\Livewire\Settings\OrderSettings;
+use App\Livewire\Settings\SsoSettings;
 use App\Livewire\StandaloneBat\BatCreate;
 use App\Livewire\StandaloneBat\BatIndex;
 use App\Livewire\StandaloneBat\BatShow;
@@ -78,6 +79,7 @@ Route::middleware(['auth'])->group(function () {
 
     // Configuration
     Route::get('/configuration/commandes', OrderSettings::class)->name('settings.orders');
+    Route::get('/configuration/sso', SsoSettings::class)->name('settings.sso');
 
     // Module BAT standalone
     Route::get('/bats', BatIndex::class)->name('standalone-bats.index');

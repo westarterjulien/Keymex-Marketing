@@ -12,8 +12,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('users', function (Blueprint $table) {
-            $table->string('role')->default('viewer')->after('email');
-            $table->json('sso_groups')->nullable()->after('role'); // Groupes SSO bruts
+            $table->json('sso_groups')->nullable()->after('email'); // Groupes SSO de l'utilisateur
         });
     }
 
@@ -23,7 +22,7 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('users', function (Blueprint $table) {
-            $table->dropColumn(['role', 'sso_groups']);
+            $table->dropColumn('sso_groups');
         });
     }
 };

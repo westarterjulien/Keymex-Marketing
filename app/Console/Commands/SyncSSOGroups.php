@@ -56,19 +56,18 @@ class SyncSSOGroups extends Command
         $this->newLine();
         $this->info('Groupes synchronises:');
 
-        $mappings = SsoGroupMapping::orderBy('priority', 'desc')->get();
+        $mappings = SsoGroupMapping::orderBy('sso_group_name')->get();
         $this->table(
-            ['ID SSO', 'Nom', 'Role local', 'Priorite'],
+            ['ID SSO', 'Nom', 'Acces autorise'],
             $mappings->map(fn($m) => [
                 $m->sso_group_id,
                 $m->sso_group_name,
-                $m->local_role ?? '(non configure)',
-                $m->priority,
+                $m->is_allowed ? 'Oui' : 'Non',
             ])
         );
 
         $this->newLine();
-        $this->info('Utilisez la commande sso:map-group pour configurer les roles.');
+        $this->info('Utilisez la commande sso:allow-group pour autoriser un groupe.');
 
         return 0;
     }

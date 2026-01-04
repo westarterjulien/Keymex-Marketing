@@ -54,14 +54,23 @@ class KeymexAuthController extends Controller
             // Extraire les groupes SSO de l'utilisateur
             $ssoGroups = $userInfo['groups'] ?? [];
 
-            // Determiner le role en fonction des groupes SSO
-            $role = SsoGroupMapping::getRoleForGroups($ssoGroups);
-
-            Log::info('SSO Login', [
+            Log::info('SSO Login attempt', [
                 'user' => $userInfo['email'],
                 'groups' => $ssoGroups,
-                'assigned_role' => $role,
             ]);
+
+            // Verifier si l'utilisateur appartient a un groupe autorise
+            if (!SsoGroupMapping::isGroupAllowed($ssoGroups)) {
+                Log::warning('SSO Login denied - no allowed group', [
+                    'user' => $userInfo['email'],
+                    'groups' => $ssoGroups,
+                    'allowed_groups' => SsoGroupMapping::getAllowedGroupNames(),
+                ]);
+
+                return redirect('/login')->with('error',
+                    'Acces refuse. Vous n\'appartenez a aucun groupe autorise a acceder a cette application.'
+                );
+            }
 
             // Creation ou mise a jour de l'utilisateur local
             $user = User::updateOrCreate(
@@ -70,7 +79,6 @@ class KeymexAuthController extends Controller
                     'name' => $userInfo['name'],
                     'email' => $userInfo['email'],
                     'avatar' => $userInfo['picture'] ?? null,
-                    'role' => $role,
                     'sso_groups' => $ssoGroups,
                     'password' => bcrypt(str()->random(32)), // Mot de passe aleatoire (non utilise avec SSO)
                 ]
@@ -85,6 +93,10 @@ class KeymexAuthController extends Controller
 
             // Connexion de l'utilisateur
             Auth::login($user, true);
+
+            Log::info('SSO Login success', [
+                'user' => $userInfo['email'],
+            ]);
 
             return redirect()->intended(route('orders.index'));
 

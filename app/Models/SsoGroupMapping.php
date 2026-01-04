@@ -10,50 +10,35 @@ class SsoGroupMapping extends Model
         'sso_group_id',
         'sso_group_name',
         'sso_group_description',
-        'local_role',
-        'priority',
+        'is_allowed',
     ];
 
     protected $casts = [
         'sso_group_id' => 'integer',
-        'priority' => 'integer',
+        'is_allowed' => 'boolean',
     ];
 
     /**
-     * Roles disponibles par ordre de priorite (du plus eleve au plus bas)
+     * Verifie si au moins un des groupes SSO est autorise a se connecter
      */
-    public const ROLES = [
-        'super-admin' => 100,
-        'admin' => 80,
-        'editor' => 60,
-        'viewer' => 40,
-    ];
-
-    /**
-     * Determine le role le plus prioritaire pour un ensemble de groupes SSO
-     */
-    public static function getRoleForGroups(array $groupNames): string
+    public static function isGroupAllowed(array $groupNames): bool
     {
         if (empty($groupNames)) {
-            return 'viewer';
+            return false;
         }
 
-        $mapping = self::whereIn('sso_group_name', $groupNames)
-            ->whereNotNull('local_role')
-            ->orderByDesc('priority')
-            ->first();
-
-        return $mapping?->local_role ?? 'viewer';
+        return self::whereIn('sso_group_name', $groupNames)
+            ->where('is_allowed', true)
+            ->exists();
     }
 
     /**
-     * Verifie si un role a une permission superieure ou egale a un autre
+     * Retourne les noms des groupes autorises
      */
-    public static function hasMinimumRole(string $userRole, string $requiredRole): bool
+    public static function getAllowedGroupNames(): array
     {
-        $userPriority = self::ROLES[$userRole] ?? 0;
-        $requiredPriority = self::ROLES[$requiredRole] ?? 0;
-
-        return $userPriority >= $requiredPriority;
+        return self::where('is_allowed', true)
+            ->pluck('sso_group_name')
+            ->toArray();
     }
 }
