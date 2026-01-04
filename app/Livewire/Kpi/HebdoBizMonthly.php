@@ -4,18 +4,22 @@ namespace App\Livewire\Kpi;
 
 use App\Services\MongoPropertyService;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Cache;
 use Livewire\Component;
 
 class HebdoBizMonthly extends Component
 {
     public bool $mongoDbError = false;
-    public int $monthOffset = 0; // 0 = mois courant, -1 = mois precedent, etc.
+    public int $monthOffset = 0;
 
     protected MongoPropertyService $propertyService;
 
     protected $queryString = [
         'monthOffset' => ['except' => 0],
     ];
+
+    // Cache duration: 5 minutes
+    protected int $cacheTtl = 300;
 
     public function boot(MongoPropertyService $propertyService): void
     {
@@ -86,6 +90,45 @@ class HebdoBizMonthly extends Component
         return round((($current - $previous) / $previous) * 100, 1);
     }
 
+    /**
+     * Récupère les stats avec cache
+     */
+    protected function getCachedStats(string $type, Carbon $start, Carbon $end): array
+    {
+        $cacheKey = "kpi_monthly_{$type}_{$start->format('Y-m-d')}_{$end->format('Y-m-d')}";
+
+        return Cache::remember($cacheKey, $this->cacheTtl, function () use ($type, $start, $end) {
+            if ($type === 'compromis') {
+                return $this->propertyService->getCompromisStats($start, $end);
+            }
+            return $this->propertyService->getMandatesExclusStats($start, $end);
+        });
+    }
+
+    /**
+     * Récupère le Top 10 CA Compromis par conseiller
+     */
+    protected function getTopCompromis(Carbon $start, Carbon $end): array
+    {
+        $cacheKey = "kpi_monthly_top_compromis_{$start->format('Y-m-d')}_{$end->format('Y-m-d')}";
+
+        return Cache::remember($cacheKey, $this->cacheTtl, function () use ($start, $end) {
+            return $this->propertyService->getTopCompromisParConseiller($start, $end, 10);
+        });
+    }
+
+    /**
+     * Récupère le Top 10 Mandats Exclusifs par conseiller
+     */
+    protected function getTopMandats(Carbon $start, Carbon $end): array
+    {
+        $cacheKey = "kpi_monthly_top_mandats_{$start->format('Y-m-d')}_{$end->format('Y-m-d')}";
+
+        return Cache::remember($cacheKey, $this->cacheTtl, function () use ($start, $end) {
+            return $this->propertyService->getTopMandatsExclusParConseiller($start, $end, 10);
+        });
+    }
+
     public function render()
     {
         $this->mongoDbError = false;
@@ -108,25 +151,37 @@ class HebdoBizMonthly extends Component
             'lastYear' => ['count' => 0],
         ];
 
-        try {
-            // C.A Compromis
-            $compromisData['current'] = $this->propertyService->getCompromisStats($selectedMonth['start'], $selectedMonth['end']);
-            $compromisData['previous'] = $this->propertyService->getCompromisStats($previousMonth['start'], $previousMonth['end']);
-            $compromisData['lastYear'] = $this->propertyService->getCompromisStats($lastYearMonth['start'], $lastYearMonth['end']);
+        $topCompromis = [];
+        $topMandats = [];
 
-            // Mandats Exclusifs
-            $mandatesData['current'] = $this->propertyService->getMandatesExclusStats($selectedMonth['start'], $selectedMonth['end']);
-            $mandatesData['previous'] = $this->propertyService->getMandatesExclusStats($previousMonth['start'], $previousMonth['end']);
-            $mandatesData['lastYear'] = $this->propertyService->getMandatesExclusStats($lastYearMonth['start'], $lastYearMonth['end']);
+        try {
+            // C.A Compromis (avec cache)
+            $compromisData['current'] = $this->getCachedStats('compromis', $selectedMonth['start'], $selectedMonth['end']);
+            $compromisData['previous'] = $this->getCachedStats('compromis', $previousMonth['start'], $previousMonth['end']);
+            $compromisData['lastYear'] = $this->getCachedStats('compromis', $lastYearMonth['start'], $lastYearMonth['end']);
+
+            // Mandats Exclusifs (avec cache)
+            $mandatesData['current'] = $this->getCachedStats('mandates', $selectedMonth['start'], $selectedMonth['end']);
+            $mandatesData['previous'] = $this->getCachedStats('mandates', $previousMonth['start'], $previousMonth['end']);
+            $mandatesData['lastYear'] = $this->getCachedStats('mandates', $lastYearMonth['start'], $lastYearMonth['end']);
+
+            // Top 10 par conseiller
+            $topCompromis = $this->getTopCompromis($selectedMonth['start'], $selectedMonth['end']);
+            $topMandats = $this->getTopMandats($selectedMonth['start'], $selectedMonth['end']);
         } catch (\Exception $e) {
             $this->mongoDbError = true;
             \Log::warning('MongoDB connection error in HebdoBizMonthly: ' . $e->getMessage());
         }
 
-        // Calcul des variations (sur les honoraires, pas le prix)
+        // Calculer CA HT (TTC / 1.20)
+        foreach (['current', 'previous', 'lastYear'] as $period) {
+            $compromisData[$period]['total_commission_ht'] = $compromisData[$period]['total_commission'] / 1.20;
+        }
+
+        // Calcul des variations (sur le CA HT)
         $variations = [
-            'compromis_ca_vs_previous' => $this->calculateVariation($compromisData['current']['total_commission'], $compromisData['previous']['total_commission']),
-            'compromis_ca_vs_lastYear' => $this->calculateVariation($compromisData['current']['total_commission'], $compromisData['lastYear']['total_commission']),
+            'compromis_ca_vs_previous' => $this->calculateVariation($compromisData['current']['total_commission_ht'], $compromisData['previous']['total_commission_ht']),
+            'compromis_ca_vs_lastYear' => $this->calculateVariation($compromisData['current']['total_commission_ht'], $compromisData['lastYear']['total_commission_ht']),
             'mandates_vs_previous' => $this->calculateVariation($mandatesData['current']['count'], $mandatesData['previous']['count']),
             'mandates_vs_lastYear' => $this->calculateVariation($mandatesData['current']['count'], $mandatesData['lastYear']['count']),
         ];
@@ -139,6 +194,8 @@ class HebdoBizMonthly extends Component
             'mandatesData' => $mandatesData,
             'variations' => $variations,
             'isCurrentMonth' => $this->monthOffset === 0,
+            'topCompromis' => $topCompromis,
+            'topMandats' => $topMandats,
         ]);
     }
 }

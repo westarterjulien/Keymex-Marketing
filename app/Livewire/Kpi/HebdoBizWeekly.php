@@ -4,18 +4,22 @@ namespace App\Livewire\Kpi;
 
 use App\Services\MongoPropertyService;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Cache;
 use Livewire\Component;
 
 class HebdoBizWeekly extends Component
 {
     public bool $mongoDbError = false;
-    public int $weekOffset = 0; // 0 = semaine courante, -1 = semaine précédente, etc.
+    public int $weekOffset = 0;
 
     protected MongoPropertyService $propertyService;
 
     protected $queryString = [
         'weekOffset' => ['except' => 0],
     ];
+
+    // Cache duration: 5 minutes
+    protected int $cacheTtl = 300;
 
     public function boot(MongoPropertyService $propertyService): void
     {
@@ -91,6 +95,45 @@ class HebdoBizWeekly extends Component
         return round((($current - $previous) / $previous) * 100, 1);
     }
 
+    /**
+     * Récupère les stats avec cache
+     */
+    protected function getCachedStats(string $type, Carbon $start, Carbon $end): array
+    {
+        $cacheKey = "kpi_{$type}_{$start->format('Y-m-d')}_{$end->format('Y-m-d')}";
+
+        return Cache::remember($cacheKey, $this->cacheTtl, function () use ($type, $start, $end) {
+            if ($type === 'compromis') {
+                return $this->propertyService->getCompromisStats($start, $end);
+            }
+            return $this->propertyService->getMandatesExclusStats($start, $end);
+        });
+    }
+
+    /**
+     * Récupère le Top 10 CA Compromis par conseiller
+     */
+    protected function getTopCompromis(Carbon $start, Carbon $end): array
+    {
+        $cacheKey = "kpi_top_compromis_{$start->format('Y-m-d')}_{$end->format('Y-m-d')}";
+
+        return Cache::remember($cacheKey, $this->cacheTtl, function () use ($start, $end) {
+            return $this->propertyService->getTopCompromisParConseiller($start, $end, 10);
+        });
+    }
+
+    /**
+     * Récupère le Top 10 Mandats Exclusifs par conseiller
+     */
+    protected function getTopMandats(Carbon $start, Carbon $end): array
+    {
+        $cacheKey = "kpi_top_mandats_{$start->format('Y-m-d')}_{$end->format('Y-m-d')}";
+
+        return Cache::remember($cacheKey, $this->cacheTtl, function () use ($start, $end) {
+            return $this->propertyService->getTopMandatsExclusParConseiller($start, $end, 10);
+        });
+    }
+
     public function render()
     {
         $this->mongoDbError = false;
@@ -113,25 +156,37 @@ class HebdoBizWeekly extends Component
             'lastYear' => ['count' => 0],
         ];
 
-        try {
-            // C.A Compromis
-            $compromisData['current'] = $this->propertyService->getCompromisStats($selectedWeek['start'], $selectedWeek['end']);
-            $compromisData['previous'] = $this->propertyService->getCompromisStats($previousWeek['start'], $previousWeek['end']);
-            $compromisData['lastYear'] = $this->propertyService->getCompromisStats($lastYearWeek['start'], $lastYearWeek['end']);
+        $topCompromis = [];
+        $topMandats = [];
 
-            // Mandats Exclusifs
-            $mandatesData['current'] = $this->propertyService->getMandatesExclusStats($selectedWeek['start'], $selectedWeek['end']);
-            $mandatesData['previous'] = $this->propertyService->getMandatesExclusStats($previousWeek['start'], $previousWeek['end']);
-            $mandatesData['lastYear'] = $this->propertyService->getMandatesExclusStats($lastYearWeek['start'], $lastYearWeek['end']);
+        try {
+            // C.A Compromis (avec cache)
+            $compromisData['current'] = $this->getCachedStats('compromis', $selectedWeek['start'], $selectedWeek['end']);
+            $compromisData['previous'] = $this->getCachedStats('compromis', $previousWeek['start'], $previousWeek['end']);
+            $compromisData['lastYear'] = $this->getCachedStats('compromis', $lastYearWeek['start'], $lastYearWeek['end']);
+
+            // Mandats Exclusifs (avec cache)
+            $mandatesData['current'] = $this->getCachedStats('mandates', $selectedWeek['start'], $selectedWeek['end']);
+            $mandatesData['previous'] = $this->getCachedStats('mandates', $previousWeek['start'], $previousWeek['end']);
+            $mandatesData['lastYear'] = $this->getCachedStats('mandates', $lastYearWeek['start'], $lastYearWeek['end']);
+
+            // Top 10 par conseiller
+            $topCompromis = $this->getTopCompromis($selectedWeek['start'], $selectedWeek['end']);
+            $topMandats = $this->getTopMandats($selectedWeek['start'], $selectedWeek['end']);
         } catch (\Exception $e) {
             $this->mongoDbError = true;
             \Log::warning('MongoDB connection error in HebdoBizWeekly: ' . $e->getMessage());
         }
 
-        // Calcul des variations (sur les honoraires, pas le prix)
+        // Calculer CA HT (TTC / 1.20)
+        foreach (['current', 'previous', 'lastYear'] as $period) {
+            $compromisData[$period]['total_commission_ht'] = $compromisData[$period]['total_commission'] / 1.20;
+        }
+
+        // Calcul des variations (sur le CA HT)
         $variations = [
-            'compromis_ca_vs_previous' => $this->calculateVariation($compromisData['current']['total_commission'], $compromisData['previous']['total_commission']),
-            'compromis_ca_vs_lastYear' => $this->calculateVariation($compromisData['current']['total_commission'], $compromisData['lastYear']['total_commission']),
+            'compromis_ca_vs_previous' => $this->calculateVariation($compromisData['current']['total_commission_ht'], $compromisData['previous']['total_commission_ht']),
+            'compromis_ca_vs_lastYear' => $this->calculateVariation($compromisData['current']['total_commission_ht'], $compromisData['lastYear']['total_commission_ht']),
             'mandates_vs_previous' => $this->calculateVariation($mandatesData['current']['count'], $mandatesData['previous']['count']),
             'mandates_vs_lastYear' => $this->calculateVariation($mandatesData['current']['count'], $mandatesData['lastYear']['count']),
         ];
@@ -144,6 +199,8 @@ class HebdoBizWeekly extends Component
             'mandatesData' => $mandatesData,
             'variations' => $variations,
             'isCurrentWeek' => $this->weekOffset === 0,
+            'topCompromis' => $topCompromis,
+            'topMandats' => $topMandats,
         ]);
     }
 }

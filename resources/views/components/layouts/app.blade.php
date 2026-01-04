@@ -22,68 +22,72 @@
             <!-- Sidebar Content with rounded design -->
             <div class="bg-gradient-to-b from-keymex-red to-[#8B1120] text-white flex flex-col h-full rounded-3xl shadow-2xl overflow-hidden">
                 <!-- Logo -->
-                <div class="p-6 pt-8">
+                <div class="p-4 pt-5">
                     <a href="{{ route('orders.index') }}" class="block">
-                        <div class="flex items-center justify-center mb-2">
-                            <div class="w-16 h-16 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center shadow-lg">
-                                <span class="text-3xl font-black text-white">K</span>
+                        <div class="flex items-center justify-center mb-1">
+                            <div class="w-11 h-11 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center shadow-lg">
+                                <span class="text-2xl font-black text-white">K</span>
                             </div>
                         </div>
-                        <h1 class="text-2xl font-black text-center text-white">KEYMEX</h1>
-                        <p class="text-xs text-white/70 text-center mt-1 font-medium">Marketing</p>
+                        <h1 class="text-lg font-black text-center text-white">KEYMEX</h1>
+                        <p class="text-[10px] text-white/70 text-center font-medium">Marketing</p>
                     </a>
                 </div>
 
                 <!-- Navigation -->
-                <nav class="flex-1 px-4 py-6 space-y-1 overflow-y-auto">
+                <nav class="flex-1 px-3 py-2 space-y-0.5 overflow-y-auto">
                     <!-- Groupe Print -->
-                    <p class="px-4 py-2 text-xs font-semibold text-white/50 uppercase tracking-wider">Print</p>
+                    <p class="px-3 py-1.5 text-[10px] font-semibold text-white/50 uppercase tracking-wider">Print</p>
 
                     <a href="{{ route('standalone-bats.index') }}"
-                       class="{{ request()->routeIs('standalone-bats.*') ? 'bg-white/20 shadow-lg' : 'hover:bg-white/10' }} flex items-center gap-3 px-4 py-3 rounded-xl text-white font-medium transition-all duration-200">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                       class="{{ request()->routeIs('standalone-bats.*') ? 'bg-white/20 shadow-lg' : 'hover:bg-white/10' }} flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-white font-medium transition-all duration-200">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
                         </svg>
                         BAT
                     </a>
 
                     <a href="{{ route('orders.index') }}"
-                       class="{{ request()->routeIs('orders.*') ? 'bg-white/20 shadow-lg' : 'hover:bg-white/10' }} flex items-center gap-3 px-4 py-3 rounded-xl text-white font-medium transition-all duration-200">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                       class="{{ request()->routeIs('orders.*') ? 'bg-white/20 shadow-lg' : 'hover:bg-white/10' }} flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-white font-medium transition-all duration-200">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
                         </svg>
                         Commandes
                     </a>
 
                     <a href="{{ route('stats.dashboard') }}"
-                       class="{{ request()->routeIs('stats.*') ? 'bg-white/20 shadow-lg' : 'hover:bg-white/10' }} flex items-center gap-3 px-4 py-3 rounded-xl text-white font-medium transition-all duration-200">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                       class="{{ request()->routeIs('stats.*') ? 'bg-white/20 shadow-lg' : 'hover:bg-white/10' }} flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-white font-medium transition-all duration-200">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
                         </svg>
                         Stats
                     </a>
 
-                    <a href="{{ route('kpi.weekly') }}"
-                       class="{{ request()->routeIs('kpi.*') ? 'bg-white/20 shadow-lg' : 'hover:bg-white/10' }} flex items-center gap-3 px-4 py-3 rounded-xl text-white font-medium transition-all duration-200">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
-                        </svg>
-                        Hebdo Biz
-                    </a>
+                    <!-- Groupe KPI -->
+                    <div class="pt-2 mt-1 border-t border-white/20">
+                        <p class="px-3 py-1.5 text-[10px] font-semibold text-white/50 uppercase tracking-wider">KPI</p>
+                        <a href="{{ route('kpi.weekly') }}"
+                           class="{{ request()->routeIs('kpi.*') ? 'bg-white/20 shadow-lg' : 'hover:bg-white/10' }} flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-white font-medium transition-all duration-200">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
+                            </svg>
+                            Hebdo Biz
+                        </a>
+                    </div>
 
                     <!-- Groupe Reseaux sociaux -->
-                    <div class="pt-4 mt-2 border-t border-white/20">
-                        <p class="px-4 py-2 text-xs font-semibold text-white/50 uppercase tracking-wider">Reseaux sociaux</p>
+                    <div class="pt-2 mt-1 border-t border-white/20">
+                        <p class="px-3 py-1.5 text-[10px] font-semibold text-white/50 uppercase tracking-wider">Réseaux sociaux</p>
                         <a href="{{ route('properties.for-sale') }}"
-                           class="{{ request()->routeIs('properties.for-sale') ? 'bg-white/20 shadow-lg' : 'hover:bg-white/10' }} flex items-center gap-3 px-4 py-3 rounded-xl text-white font-medium transition-all duration-200">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                           class="{{ request()->routeIs('properties.for-sale') ? 'bg-white/20 shadow-lg' : 'hover:bg-white/10' }} flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-white font-medium transition-all duration-200">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
                             </svg>
                             A vendre
                         </a>
                         <a href="{{ route('properties.index') }}"
-                           class="{{ request()->routeIs('properties.index') ? 'bg-white/20 shadow-lg' : 'hover:bg-white/10' }} flex items-center gap-3 px-4 py-3 rounded-xl text-white font-medium transition-all duration-200">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                           class="{{ request()->routeIs('properties.index') ? 'bg-white/20 shadow-lg' : 'hover:bg-white/10' }} flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-white font-medium transition-all duration-200">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
                             </svg>
                             Compromis / Vendus
@@ -91,41 +95,40 @@
                     </div>
 
                     <!-- Groupe Configuration -->
-                    <div class="pt-4 mt-2 border-t border-white/20">
-                        <p class="px-4 py-2 text-xs font-semibold text-white/50 uppercase tracking-wider">Configuration</p>
+                    <div class="pt-2 mt-1 border-t border-white/20">
+                        <p class="px-3 py-1.5 text-[10px] font-semibold text-white/50 uppercase tracking-wider">Configuration</p>
                         <a href="{{ route('settings.orders') }}"
-                           class="{{ request()->routeIs('settings.*') ? 'bg-white/20 shadow-lg' : 'hover:bg-white/10' }} flex items-center gap-3 px-4 py-3 rounded-xl text-white font-medium transition-all duration-200">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                           class="{{ request()->routeIs('settings.*') ? 'bg-white/20 shadow-lg' : 'hover:bg-white/10' }} flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-white font-medium transition-all duration-200">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
                             </svg>
-                            Commandes
+                            Paramètres
                         </a>
                     </div>
                 </nav>
 
                 <!-- User Profile -->
                 @auth
-                <div class="px-4 pb-6 pt-4">
-                    <div class="bg-white/10 backdrop-blur-sm rounded-2xl p-4 border border-white/20">
-                        <div class="flex items-center space-x-3 mb-3">
-                            <div class="w-12 h-12 bg-white rounded-xl flex items-center justify-center shadow-lg">
-                                <span class="text-keymex-red font-black text-lg">{{ substr(auth()->user()->name ?? 'U', 0, 1) }}</span>
+                <div class="px-3 pb-4 pt-2">
+                    <div class="bg-white/10 backdrop-blur-sm rounded-xl p-3 border border-white/20">
+                        <div class="flex items-center gap-2.5">
+                            <div class="w-9 h-9 bg-white rounded-lg flex items-center justify-center shadow">
+                                <span class="text-keymex-red font-black text-sm">{{ substr(auth()->user()->name ?? 'U', 0, 1) }}</span>
                             </div>
                             <div class="flex-1 min-w-0">
-                                <p class="text-sm font-bold truncate text-white">{{ auth()->user()->name ?? 'Utilisateur' }}</p>
-                                <p class="text-xs text-white/70 truncate">{{ auth()->user()->email ?? '' }}</p>
+                                <p class="text-xs font-bold truncate text-white">{{ auth()->user()->name ?? 'Utilisateur' }}</p>
+                                <p class="text-[10px] text-white/70 truncate">{{ auth()->user()->email ?? '' }}</p>
                             </div>
+                            <form method="POST" action="{{ route('logout') }}">
+                                @csrf
+                                <button type="submit" class="p-1.5 bg-white/20 hover:bg-white/30 rounded-lg transition-all" title="Déconnexion">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
+                                    </svg>
+                                </button>
+                            </form>
                         </div>
-                        <form method="POST" action="{{ route('logout') }}">
-                            @csrf
-                            <button type="submit" class="w-full bg-white/20 hover:bg-white/30 text-white font-medium text-sm py-2 px-4 rounded-xl transition-all duration-200 flex items-center justify-center gap-2">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
-                                </svg>
-                                Deconnexion
-                            </button>
-                        </form>
                     </div>
                 </div>
                 @endauth
@@ -178,6 +181,9 @@
                         </svg>
                         Stats
                     </a>
+
+                    <!-- Groupe KPI -->
+                    <p class="px-4 py-2 mt-2 text-xs font-semibold text-white/50 uppercase tracking-wider border-t border-white/20 pt-4">KPI</p>
                     <a href="{{ route('kpi.weekly') }}"
                        class="{{ request()->routeIs('kpi.*') ? 'bg-white/20' : '' }} flex items-center gap-3 px-4 py-3 rounded-xl text-white font-medium">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

@@ -4,7 +4,10 @@ namespace App\Services;
 
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use MongoDB\Client;
+use MongoDB\Database;
 
 class MongoPropertyService
 {
@@ -17,16 +20,208 @@ class MongoPropertyService
     protected array $photosCache = [];
 
     /**
+     * Instance MongoDB (singleton)
+     */
+    protected static ?Database $mongoDb = null;
+
+    /**
+     * Cache des compromis préchargés (durée: 10 minutes)
+     */
+    protected const COMPROMIS_CACHE_KEY = 'kpi_all_compromis_data';
+    protected const COMPROMIS_CACHE_TTL = 600; // 10 minutes
+
+    /**
+     * Obtient l'instance MongoDB (singleton)
+     */
+    protected function getMongoDb(): Database
+    {
+        if (self::$mongoDb === null) {
+            $dsn = config('database.connections.mongodb.dsn');
+            $database = config('database.connections.mongodb.database');
+            $client = new Client($dsn);
+            self::$mongoDb = $client->selectDatabase($database);
+        }
+        return self::$mongoDb;
+    }
+
+    /**
+     * Précharge TOUS les compromis en un seul appel MongoDB
+     * et les met en cache pour 10 minutes
+     * Retourne un tableau de compromis avec leurs infos
+     */
+    protected function getAllCompromisData(): array
+    {
+        return Cache::remember(self::COMPROMIS_CACHE_KEY, self::COMPROMIS_CACHE_TTL, function () {
+            $agencySlug = config('keymex.agence.slug', 'keymex-synergie');
+            $db = $this->getMongoDb();
+            $properties = $db->selectCollection('properties');
+
+            $propertiesWithCompromis = $properties->find([
+                'agency_slug' => $agencySlug,
+                'raw_data.compromis.0' => ['$exists' => true],
+            ]);
+
+            $allCompromis = [];
+
+            foreach ($propertiesWithCompromis as $property) {
+                $raw = (array) ($property['raw_data'] ?? []);
+                $compromisArray = (array) ($raw['compromis'] ?? []);
+                $suiviPar = (array) ($raw['suivi_par'] ?? []);
+
+                $advisorId = (int) ($suiviPar['id'] ?? 0);
+                $advisorName = trim(($suiviPar['firstname'] ?? '') . ' ' . ($suiviPar['lastname'] ?? ''));
+                if (!$advisorName || $advisorName === ' ' || !$advisorId) {
+                    $advisorName = 'Non attribué';
+                    $advisorId = 0;
+                }
+
+                foreach ($compromisArray as $compromis) {
+                    $compromis = (array) $compromis;
+                    $status = (array) ($compromis['status'] ?? []);
+                    $statusText = $status['text'] ?? '';
+
+                    // Ignorer si annulé
+                    $dateAnnulation = $compromis['date_annulation'] ?? null;
+                    if ($dateAnnulation && $dateAnnulation !== '0000-00-00' && $dateAnnulation !== '') {
+                        continue;
+                    }
+
+                    // Seulement les statuts valides
+                    if (!in_array($statusText, ['Compromis', "Vendu par l'agence"])) {
+                        continue;
+                    }
+
+                    $dateCompromis = $compromis['date_compromis'] ?? null;
+                    if (!$dateCompromis || $dateCompromis === '0000-00-00') {
+                        continue;
+                    }
+
+                    // Extraire la date (format Y-m-d)
+                    $datePart = preg_replace('/[T ].*$/', '', $dateCompromis);
+
+                    $allCompromis[] = [
+                        'date' => $datePart,
+                        'status' => $statusText,
+                        'seller_fees' => (float) ($compromis['seller_fees'] ?? 0),
+                        'buyer_fees' => (float) ($compromis['buyer_fees'] ?? 0),
+                        'advisor_id' => $advisorId,
+                        'advisor_name' => $advisorName,
+                    ];
+                }
+            }
+
+            return $allCompromis;
+        });
+    }
+
+    /**
      * Récupère les KPI des compromis pour une période donnée
-     * Retourne count et sum des prix (C.A)
+     * OPTIMISÉ: utilise le cache des compromis préchargés
      */
     public function getCompromisStats(Carbon $startDate, Carbon $endDate): array
     {
+        $allCompromis = $this->getAllCompromisData();
+
+        $startStr = $startDate->format('Y-m-d');
+        $endStr = $endDate->format('Y-m-d');
+
+        $count = 0;
+        $totalCommissionTTC = 0;
+
+        foreach ($allCompromis as $c) {
+            if ($c['date'] >= $startStr && $c['date'] <= $endStr) {
+                $totalCommissionTTC += $c['seller_fees'] + $c['buyer_fees'];
+                $count++;
+            }
+        }
+
+        return [
+            'count' => $count,
+            'total_price' => 0,
+            'total_commission' => $totalCommissionTTC,
+        ];
+    }
+
+    /**
+     * Vérifie si une date est dans une période donnée
+     */
+    protected function isDateInPeriod(?string $dateStr, Carbon $dateDebut, Carbon $dateFin): bool
+    {
+        if (!$dateStr || $dateStr === '0000-00-00' || $dateStr === '') {
+            return false;
+        }
+
+        try {
+            $datePart = preg_replace('/[T ].*$/', '', $dateStr);
+            $date = Carbon::parse($datePart);
+            return $date->between($dateDebut, $dateFin);
+        } catch (\Exception $e) {
+            return false;
+        }
+    }
+
+    /**
+     * Récupère le Top 10 CA Compromis par conseiller
+     * OPTIMISÉ: utilise le cache des compromis préchargés
+     */
+    public function getTopCompromisParConseiller(Carbon $startDate, Carbon $endDate, int $limit = 10): array
+    {
+        $allCompromis = $this->getAllCompromisData();
+
+        $startStr = $startDate->format('Y-m-d');
+        $endStr = $endDate->format('Y-m-d');
+
+        $conseillers = [];
+
+        foreach ($allCompromis as $c) {
+            if ($c['date'] >= $startStr && $c['date'] <= $endStr) {
+                $advisorId = $c['advisor_id'] ?: 'unknown';
+
+                if (!isset($conseillers[$advisorId])) {
+                    $conseillers[$advisorId] = [
+                        'id' => $advisorId,
+                        'name' => $c['advisor_name'],
+                        'nb_compromis' => 0,
+                        'ca_compromis' => 0,
+                    ];
+                }
+
+                $conseillers[$advisorId]['nb_compromis']++;
+                $conseillers[$advisorId]['ca_compromis'] += $c['seller_fees'] + $c['buyer_fees'];
+            }
+        }
+
+        usort($conseillers, fn($a, $b) => $b['ca_compromis'] <=> $a['ca_compromis']);
+        $conseillers = array_slice($conseillers, 0, $limit);
+
+        foreach ($conseillers as $index => &$conseiller) {
+            $conseiller['classement'] = $index + 1;
+        }
+
+        return $conseillers;
+    }
+
+    /**
+     * Récupère le Top 10 Mandats Exclusifs par conseiller
+     * Optimisé avec pré-filtre par année côté MongoDB
+     */
+    public function getTopMandatsExclusParConseiller(Carbon $startDate, Carbon $endDate, int $limit = 10): array
+    {
+        // Pré-filtre par année côté MongoDB
+        $years = [];
+        $currentYear = $startDate->year;
+        while ($currentYear <= $endDate->year) {
+            $years[] = $currentYear;
+            $currentYear++;
+        }
+        $yearPattern = '/(' . implode('|', $years) . ')$/';
+
         $query = DB::connection($this->connection)
             ->table($this->collection)
-            ->where('raw_data.status.text', 'Compromis')
-            ->where('raw_data.date_compromis', '>=', $startDate->format('Y-m-d'))
-            ->where('raw_data.date_compromis', '<=', $endDate->format('Y-m-d'))
+            ->whereNotNull('raw_data.mandate_date')
+            ->where('raw_data.mandate_date', '!=', '')
+            ->where('raw_data.mandate_date', 'regexp', $yearPattern)
+            ->where('raw_data.mandate_type', 'Exclusif') // Filtrer uniquement les mandats exclusifs
             ->where(function($q) {
                 $q->whereNull('raw_data.date_annulation')
                   ->orWhere('raw_data.date_annulation', '')
@@ -34,31 +229,70 @@ class MongoPropertyService
             })
             ->get();
 
-        $count = $query->count();
-        $totalPrice = $query->sum(fn($p) => (float) ($p->raw_data['real_estate_price'] ?? 0));
-        $totalCommission = $query->sum(fn($p) =>
-            (float) ($p->raw_data['seller_fees'] ?? 0) + (float) ($p->raw_data['buyer_fees'] ?? 0)
-        );
+        $conseillers = [];
+        foreach ($query as $item) {
+            // Filtrer par date exacte en PHP (mois et jour)
+            $mandateDateStr = $item->raw_data['mandate_date'] ?? null;
+            if (!$mandateDateStr) continue;
 
-        return [
-            'count' => $count,
-            'total_price' => $totalPrice,
-            'total_commission' => $totalCommission,
-        ];
+            try {
+                $mandateDate = Carbon::createFromFormat('d/m/Y', $mandateDateStr);
+                if (!$mandateDate->between($startDate, $endDate)) continue;
+            } catch (\Exception $e) {
+                continue;
+            }
+
+            $adminFollowed = $item->raw_data['admin_followed'] ?? null;
+            if (!$adminFollowed) continue;
+
+            $advisorId = $adminFollowed['id'] ?? 'unknown';
+            $advisorName = trim(($adminFollowed['firstname'] ?? '') . ' ' . ($adminFollowed['lastname'] ?? ''));
+            if (!$advisorName || $advisorName === ' ') $advisorName = 'Non attribué';
+
+            if (!isset($conseillers[$advisorId])) {
+                $conseillers[$advisorId] = [
+                    'id' => $advisorId,
+                    'name' => $advisorName,
+                    'nb_mandats' => 0,
+                ];
+            }
+
+            $conseillers[$advisorId]['nb_mandats']++;
+        }
+
+        usort($conseillers, fn($a, $b) => $b['nb_mandats'] <=> $a['nb_mandats']);
+        $conseillers = array_slice($conseillers, 0, $limit);
+
+        foreach ($conseillers as $index => &$conseiller) {
+            $conseiller['classement'] = $index + 1;
+        }
+
+        return $conseillers;
     }
 
     /**
      * Récupère les KPI des mandats exclusifs pour une période donnée
      * La date de mandat est au format dd/mm/yyyy dans mandate_date
+     * Optimisé avec pré-filtre par année côté MongoDB
      */
     public function getMandatesExclusStats(Carbon $startDate, Carbon $endDate): array
     {
-        // On récupère tous les biens avec mandate_date dans la période
-        // Les mandats sont dans sale_files, le type de mandat (exclusif) est à vérifier
+        // Construire le pattern pour filtrer par année(s) côté MongoDB
+        // Format: dd/mm/yyyy donc on cherche les dates qui contiennent /YYYY
+        $years = [];
+        $currentYear = $startDate->year;
+        while ($currentYear <= $endDate->year) {
+            $years[] = $currentYear;
+            $currentYear++;
+        }
+        $yearPattern = '/(' . implode('|', $years) . ')$/';
+
         $query = DB::connection($this->connection)
             ->table($this->collection)
             ->whereNotNull('raw_data.mandate_date')
             ->where('raw_data.mandate_date', '!=', '')
+            ->where('raw_data.mandate_date', 'regexp', $yearPattern)
+            ->where('raw_data.mandate_type', 'Exclusif') // Filtrer uniquement les mandats exclusifs
             ->where(function($q) {
                 $q->whereNull('raw_data.date_annulation')
                   ->orWhere('raw_data.date_annulation', '')
@@ -66,7 +300,7 @@ class MongoPropertyService
             })
             ->get();
 
-        // Filtrer en PHP car la date est au format dd/mm/yyyy
+        // Filtrer par date exacte en PHP (mois et jour)
         $filtered = $query->filter(function($item) use ($startDate, $endDate) {
             $mandateDateStr = $item->raw_data['mandate_date'] ?? null;
             if (!$mandateDateStr) return false;
@@ -79,8 +313,6 @@ class MongoPropertyService
             }
         });
 
-        // On considère que les mandats dans sale_files sont des mandats exclusifs
-        // car seuls les biens avec mandat exclusif arrivent au compromis/vente
         return [
             'count' => $filtered->count(),
         ];
@@ -88,14 +320,17 @@ class MongoPropertyService
 
     /**
      * Récupère les KPI des ventes (actes signés) pour une période donnée
+     * Utilise >= startDate et < endDate+1 jour pour gérer les dates ISO
      */
     public function getVentesStats(Carbon $startDate, Carbon $endDate): array
     {
+        $endDateExclusive = $endDate->copy()->addDay()->format('Y-m-d');
+
         $query = DB::connection($this->connection)
             ->table($this->collection)
             ->where('raw_data.status.text', 'Vendu par l\'agence')
             ->where('raw_data.date_acte', '>=', $startDate->format('Y-m-d'))
-            ->where('raw_data.date_acte', '<=', $endDate->format('Y-m-d'))
+            ->where('raw_data.date_acte', '<', $endDateExclusive)
             ->where(function($q) {
                 $q->whereNull('raw_data.date_annulation')
                   ->orWhere('raw_data.date_annulation', '')
