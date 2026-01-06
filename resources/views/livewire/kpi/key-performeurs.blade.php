@@ -15,7 +15,7 @@
                 <div>
                     <h1 class="text-2xl font-bold text-white tracking-tight">KeyPerformeurs</h1>
                     <p class="mt-0.5 text-sm text-white/80">
-                        Classement CA &bull; {{ $periodInfo['label'] }}
+                        Classement CA HT &bull; {{ $periodInfo['label'] }}
                     </p>
                 </div>
             </div>
@@ -141,12 +141,12 @@
     <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
         @php
             $categories = [
-                'elite' => ['icon' => '👑', 'label' => 'Elite', 'min' => '300K€+', 'bg' => 'bg-purple-600', 'text' => 'text-white'],
-                'platine' => ['icon' => '💎', 'label' => 'Platine', 'min' => '200-300K€', 'bg' => 'bg-slate-500', 'text' => 'text-white'],
-                'or' => ['icon' => '🥇', 'label' => 'Or', 'min' => '150-200K€', 'bg' => 'bg-yellow-500', 'text' => 'text-yellow-900'],
-                'argent' => ['icon' => '🥈', 'label' => 'Argent', 'min' => '100-150K€', 'bg' => 'bg-gray-400', 'text' => 'text-gray-800'],
-                'bronze' => ['icon' => '🥉', 'label' => 'Bronze', 'min' => '50-100K€', 'bg' => 'bg-orange-600', 'text' => 'text-white'],
-                'non_classe' => ['icon' => '🚀', 'label' => 'En progression', 'min' => '< 50K€', 'bg' => 'bg-gray-200', 'text' => 'text-gray-700'],
+                'elite' => ['icon' => '👑', 'label' => 'Elite', 'min' => '300K€+ HT', 'bg' => 'bg-purple-600', 'text' => 'text-white'],
+                'platine' => ['icon' => '💎', 'label' => 'Platine', 'min' => '200-300K€ HT', 'bg' => 'bg-slate-500', 'text' => 'text-white'],
+                'or' => ['icon' => '🥇', 'label' => 'Or', 'min' => '150-200K€ HT', 'bg' => 'bg-yellow-500', 'text' => 'text-yellow-900'],
+                'argent' => ['icon' => '🥈', 'label' => 'Argent', 'min' => '100-150K€ HT', 'bg' => 'bg-gray-400', 'text' => 'text-gray-800'],
+                'bronze' => ['icon' => '🥉', 'label' => 'Bronze', 'min' => '50-100K€ HT', 'bg' => 'bg-orange-600', 'text' => 'text-white'],
+                'non_classe' => ['icon' => '🚀', 'label' => 'En progression', 'min' => '< 50K€ HT', 'bg' => 'bg-gray-200', 'text' => 'text-gray-700'],
             ];
         @endphp
 
@@ -170,7 +170,7 @@
                 <p class="text-sm text-gray-500">{{ count($conseillers) }} conseillers</p>
             </div>
             <div class="text-sm text-gray-500">
-                CA total : <span class="font-semibold text-gray-900">{{ number_format(collect($conseillers)->sum('ca'), 0, ',', ' ') }} €</span>
+                CA total HT : <span class="font-semibold text-gray-900">{{ number_format(collect($conseillers)->sum('ca'), 0, ',', ' ') }} €</span>
             </div>
         </div>
 
@@ -182,7 +182,7 @@
                         <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Conseiller</th>
                         <th class="px-6 py-3 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">Catégorie</th>
                         <th class="px-6 py-3 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">Compromis</th>
-                        <th class="px-6 py-3 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">CA</th>
+                        <th class="px-6 py-3 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">CA HT</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-100">
@@ -227,7 +227,7 @@
                             </td>
                             <td class="px-6 py-4 text-right">
                                 <span class="font-semibold {{ $isTop3 ? 'text-keymex-red text-base' : 'text-gray-900 text-sm' }}">
-                                    {{ number_format($conseiller['ca'], 0, ',', ' ') }} €
+                                    {{ number_format($conseiller['ca'], 0, ',', ' ') }} € HT
                                 </span>
                             </td>
                         </tr>

@@ -864,7 +864,8 @@ class MongoPropertyService
             ];
         }
 
-        // 3. Ajouter les données CA des compromis
+        // 3. Ajouter les données CA des compromis (en HT)
+        // Les honoraires sont en TTC, on applique la TVA à 20%
         $allCompromis = $this->getAllCompromisData();
         $startStr = $startDate->format('Y-m-d');
         $endStr = $endDate->format('Y-m-d');
@@ -872,11 +873,13 @@ class MongoPropertyService
         foreach ($allCompromis as $c) {
             if ($c['date'] >= $startStr && $c['date'] <= $endStr) {
                 $advisorId = $c['advisor_id'] ?: 0;
-                $ca = $c['seller_fees'] + $c['buyer_fees'];
+                // Conversion TTC → HT (TVA 20%)
+                $caTTC = $c['seller_fees'] + $c['buyer_fees'];
+                $caHT = $caTTC / 1.20;
 
                 // Si le conseiller existe dans notre liste (actif)
                 if (isset($conseillers[$advisorId])) {
-                    $conseillers[$advisorId]['ca'] += $ca;
+                    $conseillers[$advisorId]['ca'] += $caHT;
                     $conseillers[$advisorId]['nb_compromis']++;
                 }
             }
@@ -885,7 +888,7 @@ class MongoPropertyService
         // 4. Ajouter la catégorie à chaque conseiller
         foreach ($conseillers as &$conseiller) {
             $conseiller['category'] = \App\Livewire\Kpi\KeyPerformeurs::getCategory($conseiller['ca']);
-            $conseiller['ca_formatted'] = number_format($conseiller['ca'] / 1000, 0, ',', ' ') . 'K€';
+            $conseiller['ca_formatted'] = number_format($conseiller['ca'] / 1000, 0, ',', ' ') . 'K€ HT';
         }
 
         // 5. Trier par CA décroissant
