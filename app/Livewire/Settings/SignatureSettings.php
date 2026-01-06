@@ -7,9 +7,11 @@ use App\Models\SignatureCampaign;
 use App\Models\SignatureTemplate;
 use App\Services\SignatureGeneratorService;
 use Livewire\Component;
+use Livewire\WithFileUploads;
 
 class SignatureSettings extends Component
 {
+    use WithFileUploads;
     public string $activeTab = 'templates';
 
     // Templates
@@ -40,6 +42,10 @@ class SignatureSettings extends Component
     public string $brandInstagramUrl = '';
     public bool $brandActive = true;
     public bool $brandDefault = false;
+    // Logo upload
+    public $brandLogoUpload;
+    public ?string $brandLogoPath = null;
+    public ?string $brandLogoPreview = null;
 
     // Campaigns
     public bool $showCampaignModal = false;
@@ -48,6 +54,8 @@ class SignatureSettings extends Component
     public string $campaignDescription = '';
     public ?int $campaignBrandId = null;
     public string $campaignBannerUrl = '';
+    public $campaignBannerUpload;
+    public ?string $campaignBannerPreview = null;
     public string $campaignLinkUrl = '';
     public string $campaignAltText = '';
     public int $campaignBannerWidth = 750;
@@ -214,10 +222,20 @@ class SignatureSettings extends Component
                 $this->brandInstagramUrl = $brand->instagram_url ?? '';
                 $this->brandActive = $brand->is_active;
                 $this->brandDefault = $brand->is_default;
+                $this->brandLogoPath = $brand->logo_path;
             }
         }
 
         $this->showBrandModal = true;
+    }
+
+    public function updatedBrandLogoUpload(): void
+    {
+        $this->validate([
+            'brandLogoUpload' => 'image|max:2048',
+        ]);
+
+        $this->brandLogoPreview = $this->brandLogoUpload->temporaryUrl();
     }
 
     public function saveBrand(): void
@@ -227,10 +245,13 @@ class SignatureSettings extends Component
             'brandPrimaryColor' => 'required|string|max:20',
             'brandWebsite' => 'nullable|url|max:255',
             'brandEmail' => 'nullable|email|max:255',
+            'brandLogoUpload' => 'nullable|image|max:2048',
         ], [
             'brandName.required' => 'Le nom est obligatoire.',
             'brandWebsite.url' => 'L\'URL du site web n\'est pas valide.',
             'brandEmail.email' => 'L\'email n\'est pas valide.',
+            'brandLogoUpload.image' => 'Le fichier doit etre une image.',
+            'brandLogoUpload.max' => 'L\'image ne doit pas depasser 2 Mo.',
         ]);
 
         // If setting as default, unset other defaults
@@ -238,9 +259,16 @@ class SignatureSettings extends Component
             Brand::where('is_default', true)->update(['is_default' => false]);
         }
 
+        // Handle logo upload
+        $logoPath = $this->brandLogoPath;
+        if ($this->brandLogoUpload) {
+            $logoPath = $this->brandLogoUpload->store('brands/logos', 'public');
+        }
+
         $data = [
             'name' => $this->brandName,
             'description' => $this->brandDescription ?: null,
+            'logo_path' => $logoPath,
             'primary_color' => $this->brandPrimaryColor,
             'secondary_color' => $this->brandSecondaryColor ?: null,
             'website' => $this->brandWebsite ?: null,
@@ -279,6 +307,9 @@ class SignatureSettings extends Component
         $this->editingBrandId = null;
         $this->brandName = '';
         $this->brandDescription = '';
+        $this->brandLogoUpload = null;
+        $this->brandLogoPath = null;
+        $this->brandLogoPreview = null;
         $this->brandPrimaryColor = '#8B5CF6';
         $this->brandSecondaryColor = '#6c757d';
         $this->brandWebsite = '';
@@ -330,27 +361,58 @@ class SignatureSettings extends Component
         $this->showCampaignModal = true;
     }
 
-    public function saveCampaign(): void
+    public function updatedCampaignBannerUpload(): void
     {
         $this->validate([
+            'campaignBannerUpload' => 'image|max:5120',
+        ], [
+            'campaignBannerUpload.image' => 'Le fichier doit etre une image.',
+            'campaignBannerUpload.max' => 'L\'image ne doit pas depasser 5 Mo.',
+        ]);
+
+        $this->campaignBannerPreview = $this->campaignBannerUpload->temporaryUrl();
+    }
+
+    public function saveCampaign(): void
+    {
+        // Validation conditionnelle : soit URL soit upload
+        $rules = [
             'campaignName' => 'required|string|max:255',
-            'campaignBannerUrl' => 'required|url|max:500',
             'campaignLinkUrl' => 'nullable|url|max:500',
             'campaignStartDate' => 'nullable|date',
             'campaignEndDate' => 'nullable|date|after_or_equal:campaignStartDate',
-        ], [
+            'campaignBannerUpload' => 'nullable|image|max:5120',
+        ];
+
+        // Si pas d'upload, l'URL est requise
+        if (!$this->campaignBannerUpload && !$this->campaignBannerUrl) {
+            $rules['campaignBannerUrl'] = 'required|url|max:500';
+        } elseif ($this->campaignBannerUrl && !$this->campaignBannerUpload) {
+            $rules['campaignBannerUrl'] = 'url|max:500';
+        }
+
+        $this->validate($rules, [
             'campaignName.required' => 'Le nom est obligatoire.',
-            'campaignBannerUrl.required' => 'L\'URL de la banniere est obligatoire.',
+            'campaignBannerUrl.required' => 'Veuillez fournir une URL ou telecharger une image.',
             'campaignBannerUrl.url' => 'L\'URL de la banniere n\'est pas valide.',
             'campaignLinkUrl.url' => 'L\'URL de destination n\'est pas valide.',
             'campaignEndDate.after_or_equal' => 'La date de fin doit etre apres la date de debut.',
+            'campaignBannerUpload.image' => 'Le fichier doit etre une image.',
+            'campaignBannerUpload.max' => 'L\'image ne doit pas depasser 5 Mo.',
         ]);
+
+        // Handle banner: upload ou URL
+        $bannerUrl = $this->campaignBannerUrl;
+        if ($this->campaignBannerUpload) {
+            $path = $this->campaignBannerUpload->store('campaigns/banners', 'public');
+            $bannerUrl = rtrim(config('app.url'), '/') . '/storage/' . $path;
+        }
 
         $data = [
             'name' => $this->campaignName,
             'description' => $this->campaignDescription ?: null,
             'brand_id' => $this->campaignBrandId ?: null,
-            'banner_url' => $this->campaignBannerUrl,
+            'banner_url' => $bannerUrl,
             'link_url' => $this->campaignLinkUrl ?: null,
             'alt_text' => $this->campaignAltText ?: null,
             'banner_width' => $this->campaignBannerWidth,
@@ -386,6 +448,8 @@ class SignatureSettings extends Component
         $this->campaignDescription = '';
         $this->campaignBrandId = null;
         $this->campaignBannerUrl = '';
+        $this->campaignBannerUpload = null;
+        $this->campaignBannerPreview = null;
         $this->campaignLinkUrl = '';
         $this->campaignAltText = '';
         $this->campaignBannerWidth = 750;

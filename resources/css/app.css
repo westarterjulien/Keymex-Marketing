@@ -30,6 +30,10 @@
     --color-keymex-red-hover: #8a1720;
     --color-keymex-red-light: #dc3545;
 
+    /* Couleur violet pour les signatures */
+    --color-keymex-violet: #8B5CF6;
+    --color-keymex-violet-dark: #7C3AED;
+
     /* Couleurs sombres */
     --color-dark: #101828;
     --color-dark-light: #1d2939;

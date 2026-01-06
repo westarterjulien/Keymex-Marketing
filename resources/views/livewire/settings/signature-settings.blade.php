@@ -499,6 +499,35 @@
                         >
                     </div>
 
+                    {{-- Logo Upload --}}
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Logo</label>
+                        <div class="flex items-start gap-4">
+                            @if($brandLogoPreview || $brandLogoPath)
+                                <div class="flex-shrink-0">
+                                    <img
+                                        src="{{ $brandLogoPreview ?? asset('storage/' . $brandLogoPath) }}"
+                                        alt="Logo preview"
+                                        class="h-16 w-auto rounded border border-gray-200 bg-white p-1"
+                                    >
+                                </div>
+                            @endif
+                            <div class="flex-1">
+                                <input
+                                    type="file"
+                                    wire:model="brandLogoUpload"
+                                    id="brandLogoUpload"
+                                    accept="image/*"
+                                    class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-keymex-violet file:text-white hover:file:bg-keymex-violet-dark file:cursor-pointer"
+                                >
+                                <p class="mt-1 text-xs text-gray-500">PNG, JPG ou SVG. Max 2MB.</p>
+                                @error('brandLogoUpload')
+                                    <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                                @enderror
+                            </div>
+                        </div>
+                    </div>
+
                     <div class="grid grid-cols-2 gap-4">
                         <div>
                             <label for="brandPrimaryColor" class="block text-sm font-medium text-gray-700 mb-1">Couleur principale *</label>
@@ -833,22 +862,56 @@
                         </div>
                     </div>
 
-                    <div>
-                        <label for="campaignBannerUrl" class="block text-sm font-medium text-gray-700 mb-1">URL de la banniere *</label>
-                        <input
-                            type="url"
-                            wire:model="campaignBannerUrl"
-                            id="campaignBannerUrl"
-                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-keymex-violet focus:border-keymex-violet"
-                            placeholder="https://example.com/banner.jpg"
-                        >
-                        @error('campaignBannerUrl')
-                            <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
-                        @enderror
-                        @if($campaignBannerUrl)
-                            <div class="mt-2 p-2 bg-gray-50 rounded-lg">
+                    {{-- Banner: Upload ou URL --}}
+                    <div class="border border-gray-200 rounded-lg p-4 bg-gray-50">
+                        <label class="block text-sm font-medium text-gray-700 mb-3">Banniere *</label>
+
+                        {{-- Upload de fichier --}}
+                        <div class="mb-4">
+                            <label class="block text-xs font-medium text-gray-600 mb-1">Telecharger une image</label>
+                            <input
+                                type="file"
+                                wire:model="campaignBannerUpload"
+                                id="campaignBannerUpload"
+                                accept="image/*"
+                                class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-keymex-violet file:text-white hover:file:bg-keymex-violet-dark file:cursor-pointer"
+                            >
+                            <p class="mt-1 text-xs text-gray-500">PNG, JPG ou GIF. Max 5MB. Largeur recommandee : 750px.</p>
+                            @error('campaignBannerUpload')
+                                <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                            @enderror
+                        </div>
+
+                        <div class="flex items-center gap-4 my-3">
+                            <div class="flex-1 border-t border-gray-300"></div>
+                            <span class="text-xs text-gray-500 font-medium">OU</span>
+                            <div class="flex-1 border-t border-gray-300"></div>
+                        </div>
+
+                        {{-- URL externe --}}
+                        <div>
+                            <label for="campaignBannerUrl" class="block text-xs font-medium text-gray-600 mb-1">URL externe</label>
+                            <input
+                                type="url"
+                                wire:model="campaignBannerUrl"
+                                id="campaignBannerUrl"
+                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-keymex-violet focus:border-keymex-violet text-sm"
+                                placeholder="https://example.com/banner.jpg"
+                            >
+                            @error('campaignBannerUrl')
+                                <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                            @enderror
+                        </div>
+
+                        {{-- Preview --}}
+                        @if($campaignBannerPreview || $campaignBannerUrl)
+                            <div class="mt-3 p-2 bg-white rounded-lg border border-gray-200">
                                 <p class="text-xs text-gray-500 mb-1">Apercu :</p>
-                                <img src="{{ $campaignBannerUrl }}" alt="Apercu" class="max-h-24 rounded border border-gray-200">
+                                <img
+                                    src="{{ $campaignBannerPreview ?? $campaignBannerUrl }}"
+                                    alt="Apercu"
+                                    class="max-h-24 rounded border border-gray-200"
+                                >
                             </div>
                         @endif
                     </div>
