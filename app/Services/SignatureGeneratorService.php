@@ -135,9 +135,16 @@ HTML;
         $website = $brand->website ?? 'https://keymex.fr';
         $domain = parse_url($website, PHP_URL_HOST) ?? 'keymex.fr';
 
+        // Build absolute logo URL for email signatures
+        $logoUrl = '';
+        if ($brand->logo_path) {
+            $baseUrl = rtrim(config('app.url'), '/');
+            $logoUrl = $baseUrl . '/storage/' . $brand->logo_path;
+        }
+
         $replacements = [
             '{{brand.name}}' => $brand->name ?? 'KEYMEX',
-            '{{brand.logoUrl}}' => $brand->logo_url ?? '',
+            '{{brand.logoUrl}}' => $logoUrl,
             '{{brand.primaryColor}}' => $brand->primary_color ?? '#8B5CF6',
             '{{brand.secondaryColor}}' => $brand->secondary_color ?? '#6c757d',
             '{{brand.accentColor}}' => $brand->accent_color ?? '',
