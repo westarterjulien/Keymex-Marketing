@@ -51,6 +51,15 @@
                     {{ $campaigns->count() }}
                 </span>
             </button>
+            <button
+                wire:click="setTab('communication')"
+                class="whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm transition-colors {{ $activeTab === 'communication' ? 'border-keymex-violet text-keymex-violet' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300' }}"
+            >
+                <svg class="inline-block h-4 w-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"/>
+                </svg>
+                Communication
+            </button>
         </nav>
     </div>
 
@@ -341,6 +350,199 @@
                         Aucune campagne. Cliquez sur "Ajouter" pour en creer une.
                     </div>
                 @endforelse
+            </div>
+        </div>
+    @elseif($activeTab === 'communication')
+        {{-- Communication --}}
+        <div class="space-y-6">
+            {{-- Lien de partage --}}
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200">
+                <div class="p-4 border-b border-gray-200">
+                    <h2 class="text-lg font-semibold text-gray-900">Lien de partage</h2>
+                    <p class="text-sm text-gray-500 mt-1">Partagez ce lien avec vos conseillers pour qu'ils puissent generer leur signature email.</p>
+                </div>
+                <div class="p-6">
+                    @php
+                        $signatureUrl = rtrim(config('app.url'), '/') . '/ma-signature';
+                    @endphp
+                    <div class="flex items-center gap-3">
+                        <div class="flex-1 relative">
+                            <input
+                                type="text"
+                                value="{{ $signatureUrl }}"
+                                readonly
+                                id="signatureLink"
+                                class="w-full px-4 py-3 bg-gray-50 border border-gray-300 rounded-lg text-gray-700 font-mono text-sm"
+                            >
+                        </div>
+                        <button
+                            onclick="copyToClipboard('{{ $signatureUrl }}')"
+                            class="inline-flex items-center gap-2 px-4 py-3 bg-keymex-violet hover:bg-keymex-violet-dark text-white text-sm font-medium rounded-lg transition-colors"
+                        >
+                            <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+                            </svg>
+                            Copier
+                        </button>
+                        <a
+                            href="{{ $signatureUrl }}"
+                            target="_blank"
+                            class="inline-flex items-center gap-2 px-4 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-medium rounded-lg transition-colors"
+                        >
+                            <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
+                            </svg>
+                            Ouvrir
+                        </a>
+                    </div>
+                    <p class="mt-3 text-xs text-gray-500">
+                        Ce lien permet aux conseillers de se connecter avec leur compte Microsoft 365 et de generer automatiquement leur signature personnalisee.
+                    </p>
+                </div>
+            </div>
+
+            {{-- QR Code --}}
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200">
+                <div class="p-4 border-b border-gray-200">
+                    <h2 class="text-lg font-semibold text-gray-900">QR Code</h2>
+                    <p class="text-sm text-gray-500 mt-1">Scannez ou telechargez ce QR code pour acceder a la page signature.</p>
+                </div>
+                <div class="p-6">
+                    <div class="flex flex-col md:flex-row items-start gap-6">
+                        <div class="bg-white p-4 rounded-lg border-2 border-gray-200 shadow-sm">
+                            <img
+                                src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data={{ urlencode($signatureUrl) }}&bgcolor=ffffff&color=8B5CF6"
+                                alt="QR Code Signature"
+                                class="w-48 h-48"
+                                id="qrCodeImage"
+                            >
+                        </div>
+                        <div class="flex-1 space-y-4">
+                            <div>
+                                <h3 class="font-medium text-gray-900 mb-2">Utilisation du QR Code</h3>
+                                <ul class="text-sm text-gray-600 space-y-1">
+                                    <li class="flex items-start gap-2">
+                                        <svg class="h-4 w-4 text-keymex-violet mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                                        </svg>
+                                        Affichez-le lors de vos reunions d'equipe
+                                    </li>
+                                    <li class="flex items-start gap-2">
+                                        <svg class="h-4 w-4 text-keymex-violet mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                                        </svg>
+                                        Imprimez-le et affichez-le dans vos locaux
+                                    </li>
+                                    <li class="flex items-start gap-2">
+                                        <svg class="h-4 w-4 text-keymex-violet mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                                        </svg>
+                                        Integrez-le dans vos presentations
+                                    </li>
+                                </ul>
+                            </div>
+                            <div class="flex gap-3">
+                                <a
+                                    href="https://api.qrserver.com/v1/create-qr-code/?size=500x500&data={{ urlencode($signatureUrl) }}&bgcolor=ffffff&color=8B5CF6&format=png"
+                                    download="qrcode-signature-keymex.png"
+                                    class="inline-flex items-center gap-2 px-4 py-2 bg-keymex-violet hover:bg-keymex-violet-dark text-white text-sm font-medium rounded-lg transition-colors"
+                                >
+                                    <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                                    </svg>
+                                    Telecharger PNG
+                                </a>
+                                <a
+                                    href="https://api.qrserver.com/v1/create-qr-code/?size=500x500&data={{ urlencode($signatureUrl) }}&bgcolor=ffffff&color=8B5CF6&format=svg"
+                                    download="qrcode-signature-keymex.svg"
+                                    class="inline-flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-medium rounded-lg transition-colors"
+                                >
+                                    <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                                    </svg>
+                                    Telecharger SVG
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {{-- Email aux conseillers --}}
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200">
+                <div class="p-4 border-b border-gray-200">
+                    <h2 class="text-lg font-semibold text-gray-900">Notifier les conseillers</h2>
+                    <p class="text-sm text-gray-500 mt-1">Envoyez un email a vos conseillers pour les informer de la nouvelle signature.</p>
+                </div>
+                <div class="p-6 space-y-4">
+                    {{-- Email template preview --}}
+                    <div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                        <h4 class="text-sm font-medium text-gray-700 mb-3">Apercu du message</h4>
+                        <div class="bg-white rounded-lg p-4 border border-gray-200 text-sm">
+                            <p class="font-semibold text-gray-900 mb-3">Objet : Votre nouvelle signature email KEYMEX</p>
+                            <div class="text-gray-700 space-y-3">
+                                <p>Bonjour,</p>
+                                <p>Nous avons mis en place un nouvel outil pour generer votre signature email professionnelle KEYMEX.</p>
+                                <p>Pour obtenir votre signature personnalisee :</p>
+                                <ol class="list-decimal list-inside ml-2 space-y-1">
+                                    <li>Cliquez sur le lien ci-dessous</li>
+                                    <li>Connectez-vous avec votre compte Microsoft 365</li>
+                                    <li>Votre signature sera automatiquement generee</li>
+                                    <li>Copiez-la et collez-la dans les parametres de votre messagerie</li>
+                                </ol>
+                                <p class="mt-3">
+                                    <strong>Lien :</strong>
+                                    <a href="{{ $signatureUrl }}" class="text-keymex-violet hover:underline">{{ $signatureUrl }}</a>
+                                </p>
+                                <p class="mt-3">Cordialement,<br>L'equipe Marketing KEYMEX</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    {{-- Actions --}}
+                    <div class="flex flex-wrap gap-3">
+                        <button
+                            onclick="copyEmailTemplate()"
+                            class="inline-flex items-center gap-2 px-4 py-2 bg-keymex-violet hover:bg-keymex-violet-dark text-white text-sm font-medium rounded-lg transition-colors"
+                        >
+                            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+                            </svg>
+                            Copier le texte
+                        </button>
+                        <a
+                            href="mailto:?subject=Votre%20nouvelle%20signature%20email%20KEYMEX&body=Bonjour%2C%0A%0ANous%20avons%20mis%20en%20place%20un%20nouvel%20outil%20pour%20g%C3%A9n%C3%A9rer%20votre%20signature%20email%20professionnelle%20KEYMEX.%0A%0APour%20obtenir%20votre%20signature%20personnalis%C3%A9e%20%3A%0A1.%20Cliquez%20sur%20le%20lien%20ci-dessous%0A2.%20Connectez-vous%20avec%20votre%20compte%20Microsoft%20365%0A3.%20Votre%20signature%20sera%20automatiquement%20g%C3%A9n%C3%A9r%C3%A9e%0A4.%20Copiez-la%20et%20collez-la%20dans%20les%20param%C3%A8tres%20de%20votre%20messagerie%0A%0ALien%20%3A%20{{ urlencode($signatureUrl) }}%0A%0ACordialement%2C%0AL%27%C3%A9quipe%20Marketing%20KEYMEX"
+                            class="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors"
+                        >
+                            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+                            </svg>
+                            Ouvrir dans ma messagerie
+                        </a>
+                    </div>
+
+                    <p class="text-xs text-gray-500 mt-2">
+                        Conseil : Vous pouvez aussi partager ce message via Teams, Slack ou tout autre outil de communication interne.
+                    </p>
+                </div>
+            </div>
+
+            {{-- Statistiques (placeholder) --}}
+            <div class="bg-gradient-to-r from-keymex-violet/10 to-purple-100 rounded-xl border border-keymex-violet/20 p-6">
+                <div class="flex items-start gap-4">
+                    <div class="flex-shrink-0 p-3 bg-keymex-violet/20 rounded-lg">
+                        <svg class="h-6 w-6 text-keymex-violet" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <h3 class="font-semibold text-gray-900">Astuce</h3>
+                        <p class="text-sm text-gray-600 mt-1">
+                            Encouragez vos conseillers a utiliser la nouvelle signature en leur expliquant les avantages :
+                            uniformite de l'image de marque, mise a jour automatique des informations, et integration des campagnes promotionnelles.
+                        </p>
+                    </div>
+                </div>
             </div>
         </div>
     @endif
@@ -1022,5 +1224,65 @@
                 </div>
             </div>
         </div>
+    @endif
+
+    {{-- JavaScript for communication features --}}
+    @if($activeTab === 'communication')
+        <script>
+            function copyToClipboard(text) {
+                navigator.clipboard.writeText(text).then(() => {
+                    // Show success notification
+                    showNotification('Lien copie dans le presse-papiers !', 'success');
+                }).catch(err => {
+                    console.error('Erreur lors de la copie:', err);
+                    showNotification('Erreur lors de la copie', 'error');
+                });
+            }
+
+            function copyEmailTemplate() {
+                const emailText = `Bonjour,
+
+Nous avons mis en place un nouvel outil pour générer votre signature email professionnelle KEYMEX.
+
+Pour obtenir votre signature personnalisée :
+1. Cliquez sur le lien ci-dessous
+2. Connectez-vous avec votre compte Microsoft 365
+3. Votre signature sera automatiquement générée
+4. Copiez-la et collez-la dans les paramètres de votre messagerie
+
+Lien : {{ rtrim(config('app.url'), '/') }}/ma-signature
+
+Cordialement,
+L'équipe Marketing KEYMEX`;
+
+                navigator.clipboard.writeText(emailText).then(() => {
+                    showNotification('Texte de l\'email copie !', 'success');
+                }).catch(err => {
+                    console.error('Erreur lors de la copie:', err);
+                    showNotification('Erreur lors de la copie', 'error');
+                });
+            }
+
+            function showNotification(message, type) {
+                // Create notification element
+                const notification = document.createElement('div');
+                notification.className = `fixed bottom-4 right-4 px-4 py-3 rounded-lg shadow-lg z-50 flex items-center gap-2 animate-slide-in-up ${type === 'success' ? 'bg-green-500 text-white' : 'bg-red-500 text-white'}`;
+                notification.innerHTML = `
+                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        ${type === 'success'
+                            ? '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>'
+                            : '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>'}
+                    </svg>
+                    <span>${message}</span>
+                `;
+                document.body.appendChild(notification);
+
+                // Remove after 3 seconds
+                setTimeout(() => {
+                    notification.classList.add('opacity-0', 'transition-opacity', 'duration-300');
+                    setTimeout(() => notification.remove(), 300);
+                }, 3000);
+            }
+        </script>
     @endif
 </div>
