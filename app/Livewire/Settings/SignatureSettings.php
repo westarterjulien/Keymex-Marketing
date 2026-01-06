@@ -3,6 +3,7 @@
 namespace App\Livewire\Settings;
 
 use App\Models\Brand;
+use App\Models\SignatureCampaign;
 use App\Models\SignatureTemplate;
 use App\Services\SignatureGeneratorService;
 use Livewire\Component;
@@ -31,8 +32,30 @@ class SignatureSettings extends Component
     public string $brandWebsite = '';
     public string $brandEmail = '';
     public string $brandPhone = '';
+    public string $brandAddress = '';
+    public string $brandOffice2Name = '';
+    public string $brandOffice2Address = '';
+    public string $brandLinkedinUrl = '';
+    public string $brandFacebookUrl = '';
+    public string $brandInstagramUrl = '';
     public bool $brandActive = true;
     public bool $brandDefault = false;
+
+    // Campaigns
+    public bool $showCampaignModal = false;
+    public ?int $editingCampaignId = null;
+    public string $campaignName = '';
+    public string $campaignDescription = '';
+    public ?int $campaignBrandId = null;
+    public string $campaignBannerUrl = '';
+    public string $campaignLinkUrl = '';
+    public string $campaignAltText = '';
+    public int $campaignBannerWidth = 750;
+    public ?int $campaignBannerHeight = null;
+    public ?string $campaignStartDate = null;
+    public ?string $campaignEndDate = null;
+    public bool $campaignActive = true;
+    public int $campaignPriority = 0;
 
     // Preview
     public bool $showPreviewModal = false;
@@ -183,6 +206,12 @@ class SignatureSettings extends Component
                 $this->brandWebsite = $brand->website ?? '';
                 $this->brandEmail = $brand->email ?? '';
                 $this->brandPhone = $brand->phone ?? '';
+                $this->brandAddress = $brand->address ?? '';
+                $this->brandOffice2Name = $brand->office2_name ?? '';
+                $this->brandOffice2Address = $brand->office2_address ?? '';
+                $this->brandLinkedinUrl = $brand->linkedin_url ?? '';
+                $this->brandFacebookUrl = $brand->facebook_url ?? '';
+                $this->brandInstagramUrl = $brand->instagram_url ?? '';
                 $this->brandActive = $brand->is_active;
                 $this->brandDefault = $brand->is_default;
             }
@@ -217,6 +246,12 @@ class SignatureSettings extends Component
             'website' => $this->brandWebsite ?: null,
             'email' => $this->brandEmail ?: null,
             'phone' => $this->brandPhone ?: null,
+            'address' => $this->brandAddress ?: null,
+            'office2_name' => $this->brandOffice2Name ?: null,
+            'office2_address' => $this->brandOffice2Address ?: null,
+            'linkedin_url' => $this->brandLinkedinUrl ?: null,
+            'facebook_url' => $this->brandFacebookUrl ?: null,
+            'instagram_url' => $this->brandInstagramUrl ?: null,
             'is_active' => $this->brandActive,
             'is_default' => $this->brandDefault,
         ];
@@ -249,6 +284,12 @@ class SignatureSettings extends Component
         $this->brandWebsite = '';
         $this->brandEmail = '';
         $this->brandPhone = '';
+        $this->brandAddress = '';
+        $this->brandOffice2Name = '';
+        $this->brandOffice2Address = '';
+        $this->brandLinkedinUrl = '';
+        $this->brandFacebookUrl = '';
+        $this->brandInstagramUrl = '';
         $this->brandActive = true;
         $this->brandDefault = false;
     }
@@ -258,6 +299,108 @@ class SignatureSettings extends Component
         $brand = Brand::find($id);
         if ($brand) {
             $brand->update(['is_active' => !$brand->is_active]);
+        }
+    }
+
+    // ================== Campaigns ==================
+
+    public function openCampaignModal(?int $id = null): void
+    {
+        $this->resetCampaignForm();
+
+        if ($id) {
+            $campaign = SignatureCampaign::find($id);
+            if ($campaign) {
+                $this->editingCampaignId = $id;
+                $this->campaignName = $campaign->name;
+                $this->campaignDescription = $campaign->description ?? '';
+                $this->campaignBrandId = $campaign->brand_id;
+                $this->campaignBannerUrl = $campaign->banner_url ?? '';
+                $this->campaignLinkUrl = $campaign->link_url ?? '';
+                $this->campaignAltText = $campaign->alt_text ?? '';
+                $this->campaignBannerWidth = $campaign->banner_width ?? 750;
+                $this->campaignBannerHeight = $campaign->banner_height;
+                $this->campaignStartDate = $campaign->start_date?->format('Y-m-d');
+                $this->campaignEndDate = $campaign->end_date?->format('Y-m-d');
+                $this->campaignActive = $campaign->is_active;
+                $this->campaignPriority = $campaign->priority ?? 0;
+            }
+        }
+
+        $this->showCampaignModal = true;
+    }
+
+    public function saveCampaign(): void
+    {
+        $this->validate([
+            'campaignName' => 'required|string|max:255',
+            'campaignBannerUrl' => 'required|url|max:500',
+            'campaignLinkUrl' => 'nullable|url|max:500',
+            'campaignStartDate' => 'nullable|date',
+            'campaignEndDate' => 'nullable|date|after_or_equal:campaignStartDate',
+        ], [
+            'campaignName.required' => 'Le nom est obligatoire.',
+            'campaignBannerUrl.required' => 'L\'URL de la banniere est obligatoire.',
+            'campaignBannerUrl.url' => 'L\'URL de la banniere n\'est pas valide.',
+            'campaignLinkUrl.url' => 'L\'URL de destination n\'est pas valide.',
+            'campaignEndDate.after_or_equal' => 'La date de fin doit etre apres la date de debut.',
+        ]);
+
+        $data = [
+            'name' => $this->campaignName,
+            'description' => $this->campaignDescription ?: null,
+            'brand_id' => $this->campaignBrandId ?: null,
+            'banner_url' => $this->campaignBannerUrl,
+            'link_url' => $this->campaignLinkUrl ?: null,
+            'alt_text' => $this->campaignAltText ?: null,
+            'banner_width' => $this->campaignBannerWidth,
+            'banner_height' => $this->campaignBannerHeight,
+            'start_date' => $this->campaignStartDate ?: null,
+            'end_date' => $this->campaignEndDate ?: null,
+            'is_active' => $this->campaignActive,
+            'priority' => $this->campaignPriority,
+        ];
+
+        if ($this->editingCampaignId) {
+            $campaign = SignatureCampaign::find($this->editingCampaignId);
+            $campaign->update($data);
+            session()->flash('success', 'Campagne modifiee avec succes.');
+        } else {
+            SignatureCampaign::create($data);
+            session()->flash('success', 'Campagne creee avec succes.');
+        }
+
+        $this->closeCampaignModal();
+    }
+
+    public function closeCampaignModal(): void
+    {
+        $this->showCampaignModal = false;
+        $this->resetCampaignForm();
+    }
+
+    protected function resetCampaignForm(): void
+    {
+        $this->editingCampaignId = null;
+        $this->campaignName = '';
+        $this->campaignDescription = '';
+        $this->campaignBrandId = null;
+        $this->campaignBannerUrl = '';
+        $this->campaignLinkUrl = '';
+        $this->campaignAltText = '';
+        $this->campaignBannerWidth = 750;
+        $this->campaignBannerHeight = null;
+        $this->campaignStartDate = null;
+        $this->campaignEndDate = null;
+        $this->campaignActive = true;
+        $this->campaignPriority = 0;
+    }
+
+    public function toggleCampaignActive(int $id): void
+    {
+        $campaign = SignatureCampaign::find($id);
+        if ($campaign) {
+            $campaign->update(['is_active' => !$campaign->is_active]);
         }
     }
 
@@ -279,6 +422,7 @@ class SignatureSettings extends Component
         $model = match ($this->deleteType) {
             'template' => SignatureTemplate::find($this->deleteId),
             'brand' => Brand::find($this->deleteId),
+            'campaign' => SignatureCampaign::find($this->deleteId),
             default => null,
         };
 
@@ -339,6 +483,7 @@ HTML;
             'templates' => SignatureTemplate::with('brand')->orderBy('name')->get(),
             'brands' => Brand::orderBy('name')->get(),
             'brandsForSelect' => Brand::where('is_active', true)->orderBy('name')->get(),
+            'campaigns' => SignatureCampaign::with('brand')->orderBy('priority', 'desc')->orderBy('name')->get(),
         ]);
     }
 }

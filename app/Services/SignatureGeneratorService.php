@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Brand;
+use App\Models\SignatureCampaign;
 use App\Models\SignatureTemplate;
 
 class SignatureGeneratorService
@@ -13,9 +14,10 @@ class SignatureGeneratorService
      * @param SignatureTemplate $template
      * @param array $advisor MongoDB advisor data
      * @param bool $wrapInHtmlDocument
+     * @param bool $includeCampaign Whether to include active campaign banner
      * @return string
      */
-    public function generateForAdvisor(SignatureTemplate $template, array $advisor, bool $wrapInHtmlDocument = true): string
+    public function generateForAdvisor(SignatureTemplate $template, array $advisor, bool $wrapInHtmlDocument = true, bool $includeCampaign = true): string
     {
         $html = $template->html_content;
 
@@ -29,6 +31,11 @@ class SignatureGeneratorService
 
         // Clean up empty rows/elements in the HTML
         $html = $this->cleanupEmptyElements($html);
+
+        // Add campaign banner if active
+        if ($includeCampaign) {
+            $html = $this->addCampaignBanner($html, $template->brand_id);
+        }
 
         // If wrapInHtmlDocument is true and HTML doesn't already have DOCTYPE, wrap it
         if ($wrapInHtmlDocument && stripos($html, '<!DOCTYPE') === false) {
@@ -79,6 +86,7 @@ HTML;
      *
      * MongoDB advisor structure:
      * - firstname, lastname, email, mobile_phone, phone, picture
+     * - linkedin_url, facebook_url, instagram_url (social media links)
      */
     private function replaceContactVariables(string $html, array $advisor): string
     {
@@ -99,6 +107,11 @@ HTML;
             '{{contact.mobile}}' => $advisor['mobile_phone'] ?? '',
             '{{contact.photoUrl}}' => $advisor['picture'] ?? '',
 
+            // Social media links
+            '{{contact.linkedin}}' => $advisor['linkedin_url'] ?? '',
+            '{{contact.facebook}}' => $advisor['facebook_url'] ?? '',
+            '{{contact.instagram}}' => $advisor['instagram_url'] ?? '',
+
             // Legacy user variables (for backwards compatibility)
             '{{user.firstName}}' => $firstName,
             '{{user.lastName}}' => $lastName,
@@ -118,13 +131,17 @@ HTML;
      */
     private function replaceBrandVariables(string $html, Brand $brand): string
     {
+        // Extract domain from website URL for organization.domain
+        $website = $brand->website ?? 'https://keymex.fr';
+        $domain = parse_url($website, PHP_URL_HOST) ?? 'keymex.fr';
+
         $replacements = [
             '{{brand.name}}' => $brand->name ?? 'KEYMEX',
             '{{brand.logoUrl}}' => $brand->logo_url ?? '',
             '{{brand.primaryColor}}' => $brand->primary_color ?? '#8B5CF6',
             '{{brand.secondaryColor}}' => $brand->secondary_color ?? '#6c757d',
             '{{brand.accentColor}}' => $brand->accent_color ?? '',
-            '{{brand.website}}' => $brand->website ?? 'https://keymex.fr',
+            '{{brand.website}}' => $website,
             '{{brand.phone}}' => $brand->phone ?? '',
             '{{brand.email}}' => $brand->email ?? '',
             '{{brand.address}}' => $brand->address ?? '',
@@ -135,6 +152,11 @@ HTML;
             '{{brand.office1Address}}' => $brand->address ?? '',
             '{{brand.office2Name}}' => $brand->office2_name ?? '',
             '{{brand.office2Address}}' => $brand->office2_address ?? '',
+
+            // Organization variables (for backwards compatibility with signature_tool)
+            '{{organization.domain}}' => $domain,
+            '{{organization.name}}' => $brand->name ?? 'KEYMEX',
+            '{{organization.website}}' => $website,
         ];
 
         return str_replace(array_keys($replacements), array_values($replacements), $html);
@@ -190,5 +212,36 @@ HTML;
         $html = preg_replace('/\n{3,}/', "\n\n", $html);
 
         return $html;
+    }
+
+    /**
+     * Add campaign banner to signature if there's an active campaign
+     */
+    private function addCampaignBanner(string $html, ?int $brandId): string
+    {
+        $campaign = SignatureCampaign::getActiveForBrand($brandId);
+
+        if (!$campaign || empty($campaign->banner_url)) {
+            return $html;
+        }
+
+        $bannerHtml = $campaign->generateBannerHtml();
+
+        if (empty($bannerHtml)) {
+            return $html;
+        }
+
+        // Add banner at the end of the signature with some spacing
+        $bannerWrapper = <<<HTML
+<table cellpadding="0" cellspacing="0" border="0" style="margin-top: 15px;">
+    <tr>
+        <td>
+            {$bannerHtml}
+        </td>
+    </tr>
+</table>
+HTML;
+
+        return $html . "\n" . $bannerWrapper;
     }
 }

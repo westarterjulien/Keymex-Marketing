@@ -42,6 +42,15 @@
                     {{ $brands->count() }}
                 </span>
             </button>
+            <button
+                wire:click="setTab('campaigns')"
+                class="whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm transition-colors {{ $activeTab === 'campaigns' ? 'border-keymex-violet text-keymex-violet' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300' }}"
+            >
+                Campagnes
+                <span class="ml-2 rounded-full bg-gray-100 px-2 py-0.5 text-xs">
+                    {{ $campaigns->count() }}
+                </span>
+            </button>
         </nav>
     </div>
 
@@ -151,7 +160,7 @@
                 @endforelse
             </div>
         </div>
-    @else
+    @elseif($activeTab === 'brands')
         {{-- Brands --}}
         <div class="bg-white rounded-xl shadow-sm border border-gray-200">
             <div class="p-4 border-b border-gray-200 flex items-center justify-between">
@@ -227,6 +236,109 @@
                 @empty
                     <div class="p-8 text-center text-gray-500">
                         Aucune marque. Cliquez sur "Ajouter" pour en creer une.
+                    </div>
+                @endforelse
+            </div>
+        </div>
+    @elseif($activeTab === 'campaigns')
+        {{-- Campaigns --}}
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200">
+            <div class="p-4 border-b border-gray-200 flex items-center justify-between">
+                <h2 class="text-lg font-semibold text-gray-900">Campagnes / Bannieres</h2>
+                <button
+                    wire:click="openCampaignModal"
+                    class="inline-flex items-center gap-2 px-4 py-2 bg-keymex-violet hover:bg-keymex-violet-dark text-white text-sm font-medium rounded-lg transition-colors"
+                >
+                    <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                    </svg>
+                    Ajouter
+                </button>
+            </div>
+            <div class="p-4 bg-blue-50 border-b border-gray-200">
+                <p class="text-sm text-blue-700">
+                    <strong>Info :</strong> Les bannieres actives sont automatiquement ajoutees en bas des signatures email.
+                    Vous pouvez definir une periode de validite pour les campagnes temporaires.
+                </p>
+            </div>
+            <div class="divide-y divide-gray-200">
+                @forelse($campaigns as $campaign)
+                    <div class="p-4 flex items-center justify-between hover:bg-gray-50 transition-colors">
+                        <div class="flex items-center gap-4">
+                            @if($campaign->banner_url)
+                                <img
+                                    src="{{ $campaign->banner_url }}"
+                                    alt="{{ $campaign->name }}"
+                                    class="h-12 w-auto rounded object-cover border border-gray-200"
+                                    style="max-width: 120px;"
+                                >
+                            @else
+                                <span class="flex items-center justify-center h-12 w-20 rounded bg-gray-100 text-gray-400">
+                                    <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                                    </svg>
+                                </span>
+                            @endif
+                            <div>
+                                <div class="flex items-center gap-2">
+                                    <p class="font-medium text-gray-900">{{ $campaign->name }}</p>
+                                    @if($campaign->brand)
+                                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
+                                            {{ $campaign->brand->name }}
+                                        </span>
+                                    @else
+                                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-violet-100 text-keymex-violet">
+                                            Globale
+                                        </span>
+                                    @endif
+                                </div>
+                                <div class="flex items-center gap-3 text-sm text-gray-500">
+                                    @if($campaign->start_date || $campaign->end_date)
+                                        <span>
+                                            {{ $campaign->start_date?->format('d/m/Y') ?? 'Debut' }}
+                                            -
+                                            {{ $campaign->end_date?->format('d/m/Y') ?? 'Indefinie' }}
+                                        </span>
+                                    @else
+                                        <span>Permanente</span>
+                                    @endif
+                                    @if($campaign->link_url)
+                                        <span class="text-keymex-violet">Cliquable</span>
+                                    @endif
+                                </div>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <button
+                                wire:click="toggleCampaignActive({{ $campaign->id }})"
+                                class="relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none {{ $campaign->is_active ? 'bg-keymex-violet' : 'bg-gray-200' }}"
+                                title="{{ $campaign->is_active ? 'Actif' : 'Inactif' }}"
+                            >
+                                <span class="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out {{ $campaign->is_active ? 'translate-x-5' : 'translate-x-0' }}"></span>
+                            </button>
+                            <button
+                                wire:click="openCampaignModal({{ $campaign->id }})"
+                                class="p-2 text-gray-400 hover:text-keymex-violet transition-colors"
+                                title="Modifier"
+                            >
+                                <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                                </svg>
+                            </button>
+                            <button
+                                wire:click="confirmDelete('campaign', {{ $campaign->id }})"
+                                class="p-2 text-gray-400 hover:text-red-600 transition-colors"
+                                title="Supprimer"
+                            >
+                                <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                @empty
+                    <div class="p-8 text-center text-gray-500">
+                        Aucune campagne. Cliquez sur "Ajouter" pour en creer une.
                     </div>
                 @endforelse
             </div>
@@ -466,6 +578,88 @@
                         </div>
                     </div>
 
+                    {{-- Adresses --}}
+                    <div class="border-t border-gray-200 pt-4">
+                        <h4 class="text-sm font-semibold text-gray-900 mb-3">Adresses</h4>
+
+                        <div class="space-y-4">
+                            <div>
+                                <label for="brandAddress" class="block text-sm font-medium text-gray-700 mb-1">Bureau principal (adresse)</label>
+                                <textarea
+                                    wire:model="brandAddress"
+                                    id="brandAddress"
+                                    rows="2"
+                                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-keymex-violet focus:border-keymex-violet"
+                                    placeholder="123 rue de la Paix, 75001 Paris"
+                                ></textarea>
+                            </div>
+
+                            <div class="grid grid-cols-3 gap-4">
+                                <div>
+                                    <label for="brandOffice2Name" class="block text-sm font-medium text-gray-700 mb-1">Bureau 2 (nom)</label>
+                                    <input
+                                        type="text"
+                                        wire:model="brandOffice2Name"
+                                        id="brandOffice2Name"
+                                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-keymex-violet focus:border-keymex-violet"
+                                        placeholder="Ex: Agence Sud"
+                                    >
+                                </div>
+                                <div class="col-span-2">
+                                    <label for="brandOffice2Address" class="block text-sm font-medium text-gray-700 mb-1">Bureau 2 (adresse)</label>
+                                    <input
+                                        type="text"
+                                        wire:model="brandOffice2Address"
+                                        id="brandOffice2Address"
+                                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-keymex-violet focus:border-keymex-violet"
+                                        placeholder="456 avenue du Soleil, 13000 Marseille"
+                                    >
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {{-- Reseaux sociaux --}}
+                    <div class="border-t border-gray-200 pt-4">
+                        <h4 class="text-sm font-semibold text-gray-900 mb-3">Reseaux sociaux</h4>
+
+                        <div class="space-y-4">
+                            <div>
+                                <label for="brandLinkedinUrl" class="block text-sm font-medium text-gray-700 mb-1">LinkedIn</label>
+                                <input
+                                    type="url"
+                                    wire:model="brandLinkedinUrl"
+                                    id="brandLinkedinUrl"
+                                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-keymex-violet focus:border-keymex-violet"
+                                    placeholder="https://linkedin.com/company/keymex"
+                                >
+                            </div>
+
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label for="brandFacebookUrl" class="block text-sm font-medium text-gray-700 mb-1">Facebook</label>
+                                    <input
+                                        type="url"
+                                        wire:model="brandFacebookUrl"
+                                        id="brandFacebookUrl"
+                                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-keymex-violet focus:border-keymex-violet"
+                                        placeholder="https://facebook.com/keymex"
+                                    >
+                                </div>
+                                <div>
+                                    <label for="brandInstagramUrl" class="block text-sm font-medium text-gray-700 mb-1">Instagram</label>
+                                    <input
+                                        type="url"
+                                        wire:model="brandInstagramUrl"
+                                        id="brandInstagramUrl"
+                                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-keymex-violet focus:border-keymex-violet"
+                                        placeholder="https://instagram.com/keymex"
+                                    >
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                     <div class="flex items-center gap-6">
                         <div class="flex items-center gap-3">
                             <button
@@ -589,6 +783,178 @@
                         class="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
                     >
                         Supprimer
+                    </button>
+                </div>
+            </div>
+        </div>
+    @endif
+
+    {{-- Modal Campaign --}}
+    @if($showCampaignModal)
+        <div class="fixed inset-0 z-50 flex items-center justify-center p-4">
+            {{-- Backdrop --}}
+            <div wire:click="closeCampaignModal" class="absolute inset-0 bg-gray-900/50"></div>
+
+            {{-- Modal Content --}}
+            <div class="relative bg-white rounded-xl shadow-xl w-full max-w-2xl p-6 max-h-[90vh] overflow-y-auto">
+                <h3 class="text-lg font-semibold text-gray-900 mb-4">
+                    {{ $editingCampaignId ? 'Modifier la campagne' : 'Nouvelle campagne' }}
+                </h3>
+
+                <div class="space-y-4">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label for="campaignName" class="block text-sm font-medium text-gray-700 mb-1">Nom *</label>
+                            <input
+                                type="text"
+                                wire:model="campaignName"
+                                id="campaignName"
+                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-keymex-violet focus:border-keymex-violet"
+                                placeholder="Ex: Promo Janvier 2026"
+                            >
+                            @error('campaignName')
+                                <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                            @enderror
+                        </div>
+
+                        <div>
+                            <label for="campaignBrandId" class="block text-sm font-medium text-gray-700 mb-1">Marque</label>
+                            <select
+                                wire:model="campaignBrandId"
+                                id="campaignBrandId"
+                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-keymex-violet focus:border-keymex-violet"
+                            >
+                                <option value="">Toutes les marques (globale)</option>
+                                @foreach($brandsForSelect as $brand)
+                                    <option value="{{ $brand->id }}">{{ $brand->name }}</option>
+                                @endforeach
+                            </select>
+                            <p class="mt-1 text-xs text-gray-500">Laissez vide pour appliquer a toutes les marques</p>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label for="campaignBannerUrl" class="block text-sm font-medium text-gray-700 mb-1">URL de la banniere *</label>
+                        <input
+                            type="url"
+                            wire:model="campaignBannerUrl"
+                            id="campaignBannerUrl"
+                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-keymex-violet focus:border-keymex-violet"
+                            placeholder="https://example.com/banner.jpg"
+                        >
+                        @error('campaignBannerUrl')
+                            <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                        @enderror
+                        @if($campaignBannerUrl)
+                            <div class="mt-2 p-2 bg-gray-50 rounded-lg">
+                                <p class="text-xs text-gray-500 mb-1">Apercu :</p>
+                                <img src="{{ $campaignBannerUrl }}" alt="Apercu" class="max-h-24 rounded border border-gray-200">
+                            </div>
+                        @endif
+                    </div>
+
+                    <div>
+                        <label for="campaignLinkUrl" class="block text-sm font-medium text-gray-700 mb-1">URL de destination (clic)</label>
+                        <input
+                            type="url"
+                            wire:model="campaignLinkUrl"
+                            id="campaignLinkUrl"
+                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-keymex-violet focus:border-keymex-violet"
+                            placeholder="https://example.com/promo"
+                        >
+                        @error('campaignLinkUrl')
+                            <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                        @enderror
+                    </div>
+
+                    <div>
+                        <label for="campaignDescription" class="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                        <input
+                            type="text"
+                            wire:model="campaignDescription"
+                            id="campaignDescription"
+                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-keymex-violet focus:border-keymex-violet"
+                            placeholder="Description de la campagne"
+                        >
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label for="campaignStartDate" class="block text-sm font-medium text-gray-700 mb-1">Date de debut</label>
+                            <input
+                                type="date"
+                                wire:model="campaignStartDate"
+                                id="campaignStartDate"
+                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-keymex-violet focus:border-keymex-violet"
+                            >
+                        </div>
+                        <div>
+                            <label for="campaignEndDate" class="block text-sm font-medium text-gray-700 mb-1">Date de fin</label>
+                            <input
+                                type="date"
+                                wire:model="campaignEndDate"
+                                id="campaignEndDate"
+                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-keymex-violet focus:border-keymex-violet"
+                            >
+                            @error('campaignEndDate')
+                                <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                            @enderror
+                        </div>
+                    </div>
+                    <p class="text-xs text-gray-500">Laissez vide pour une campagne permanente</p>
+
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label for="campaignBannerWidth" class="block text-sm font-medium text-gray-700 mb-1">Largeur (px)</label>
+                            <input
+                                type="number"
+                                wire:model="campaignBannerWidth"
+                                id="campaignBannerWidth"
+                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-keymex-violet focus:border-keymex-violet"
+                                min="100"
+                                max="1000"
+                            >
+                        </div>
+                        <div>
+                            <label for="campaignPriority" class="block text-sm font-medium text-gray-700 mb-1">Priorite</label>
+                            <input
+                                type="number"
+                                wire:model="campaignPriority"
+                                id="campaignPriority"
+                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-keymex-violet focus:border-keymex-violet"
+                                min="0"
+                                max="100"
+                            >
+                            <p class="mt-1 text-xs text-gray-500">Plus la priorite est haute, plus la campagne est prioritaire</p>
+                        </div>
+                    </div>
+
+                    <div class="flex items-center gap-3">
+                        <button
+                            type="button"
+                            wire:click="$toggle('campaignActive')"
+                            class="relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none {{ $campaignActive ? 'bg-keymex-violet' : 'bg-gray-200' }}"
+                        >
+                            <span class="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out {{ $campaignActive ? 'translate-x-5' : 'translate-x-0' }}"></span>
+                        </button>
+                        <span class="text-sm text-gray-700">Campagne active</span>
+                    </div>
+                </div>
+
+                <div class="flex gap-3 mt-6">
+                    <button
+                        wire:click="closeCampaignModal"
+                        type="button"
+                        class="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                    >
+                        Annuler
+                    </button>
+                    <button
+                        wire:click="saveCampaign"
+                        type="button"
+                        class="flex-1 px-4 py-2 bg-keymex-violet text-white rounded-lg hover:bg-keymex-violet-dark transition-colors"
+                    >
+                        {{ $editingCampaignId ? 'Modifier' : 'Creer' }}
                     </button>
                 </div>
             </div>
