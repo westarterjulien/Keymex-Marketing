@@ -118,6 +118,9 @@ class MySignature extends Component
             // Remplir les champs d'edition avec les donnees actuelles
             $this->fillEditFields();
 
+            // Activer le mode edition par defaut pour permettre les modifications
+            $this->isEditing = true;
+
             // Generer la signature
             $this->generateSignature();
 
