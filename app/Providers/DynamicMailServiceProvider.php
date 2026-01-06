@@ -21,10 +21,8 @@ class DynamicMailServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        // Evite les erreurs si la table n'existe pas encore (pendant les migrations)
-        if (!$this->app->runningInConsole() || $this->app->runningUnitTests()) {
-            $this->configureMailFromDatabase();
-        }
+        // Charge la config SMTP depuis la BDD (web et CLI)
+        $this->configureMailFromDatabase();
     }
 
     /**
