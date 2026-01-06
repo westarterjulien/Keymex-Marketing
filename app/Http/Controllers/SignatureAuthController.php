@@ -14,17 +14,19 @@ class SignatureAuthController extends Controller
 
     /**
      * Redirige vers Keymex SSO pour l'authentification signature
+     * Utilise le callback principal avec un flag en session
      */
     public function redirect()
     {
-        // Stocker l'URL de retour en session
-        session(['signature_return_url' => route('signature.my')]);
+        // Stocker un flag pour indiquer que c'est une auth signature
+        session(['auth_for_signature' => true]);
 
-        return redirect($this->sso->getAuthorizationUrl());
+        // Utiliser le callback principal (autorise dans le SSO)
+        return redirect($this->sso->getAuthorizationUrl(['openid', 'profile', 'email']));
     }
 
     /**
-     * Gere le retour de Keymex SSO
+     * Gere le retour de Keymex SSO (callback alternatif si URI autorisee)
      */
     public function callback(Request $request)
     {

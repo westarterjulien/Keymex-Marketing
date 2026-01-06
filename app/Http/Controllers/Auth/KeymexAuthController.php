@@ -29,16 +29,22 @@ class KeymexAuthController extends Controller
      */
     public function callback(Request $request)
     {
+        // Verifier si c'est une auth pour la signature (page publique)
+        $isSignatureAuth = session('auth_for_signature', false);
+        session()->forget('auth_for_signature');
+
         // Gestion des erreurs retournees par le SSO
         if ($request->has('error')) {
-            return redirect('/login')->with('error',
+            $redirectUrl = $isSignatureAuth ? route('signature.my') : '/login';
+            return redirect($redirectUrl)->with('error',
                 $request->error_description ?? 'Erreur d\'authentification'
             );
         }
 
         // Verification des parametres requis
         if (!$request->has('code') || !$request->has('state')) {
-            return redirect('/login')->with('error', 'Parametres manquants');
+            $redirectUrl = $isSignatureAuth ? route('signature.my') : '/login';
+            return redirect($redirectUrl)->with('error', 'Parametres manquants');
         }
 
         try {
@@ -51,7 +57,21 @@ class KeymexAuthController extends Controller
             // Recuperation des infos utilisateur
             $userInfo = $this->sso->getUserInfo($tokens['access_token']);
 
-            // Extraire les groupes SSO de l'utilisateur
+            // Si c'est une auth signature, stocker l'email en session et rediriger
+            if ($isSignatureAuth) {
+                Log::info('Signature Auth success', ['email' => $userInfo['email']]);
+
+                session([
+                    'signature_user_email' => $userInfo['email'],
+                    'signature_user_name' => $userInfo['name'],
+                    'signature_authenticated_at' => now(),
+                ]);
+
+                return redirect()->route('signature.my')
+                    ->with('success', 'Authentification reussie');
+            }
+
+            // Auth normale : verifier les groupes et creer l'utilisateur
             $ssoGroups = $userInfo['groups'] ?? [];
 
             Log::info('SSO Login attempt', [
@@ -102,7 +122,8 @@ class KeymexAuthController extends Controller
 
         } catch (\Exception $e) {
             report($e);
-            return redirect('/login')->with('error', 'Erreur de connexion: ' . $e->getMessage());
+            $redirectUrl = $isSignatureAuth ? route('signature.my') : '/login';
+            return redirect($redirectUrl)->with('error', 'Erreur de connexion: ' . $e->getMessage());
         }
     }
 

@@ -22,15 +22,24 @@ class KeymexSSOService
 
     /**
      * Genere l'URL d'autorisation pour rediriger l'utilisateur
+     *
+     * @param array $scopes Scopes OAuth
+     * @param string|null $customRedirectUri URI de redirection personnalisee (optionnel)
      */
-    public function getAuthorizationUrl(array $scopes = ['openid', 'profile', 'email', 'groups']): string
+    public function getAuthorizationUrl(array $scopes = ['openid', 'profile', 'email', 'groups'], ?string $customRedirectUri = null): string
     {
         $state = Str::random(40);
-        session(['keymex_sso_state' => $state]);
+        $redirectUri = $customRedirectUri ?? $this->redirectUri;
+
+        // Stocker le state ET l'URI de redirection pour le callback
+        session([
+            'keymex_sso_state' => $state,
+            'keymex_sso_redirect_uri' => $redirectUri,
+        ]);
 
         return $this->baseUrl . '/api/oauth/authorize?' . http_build_query([
             'client_id' => $this->clientId,
-            'redirect_uri' => $this->redirectUri,
+            'redirect_uri' => $redirectUri,
             'response_type' => 'code',
             'scope' => implode(' ', $scopes),
             'state' => $state,
@@ -39,15 +48,22 @@ class KeymexSSOService
 
     /**
      * Gere le callback et echange le code contre des tokens
+     *
+     * @param string $code Code d'autorisation
+     * @param string $state State CSRF
+     * @param string|null $customRedirectUri URI de redirection (si non fournie, utilise celle en session)
      */
-    public function handleCallback(string $code, string $state): array
+    public function handleCallback(string $code, string $state, ?string $customRedirectUri = null): array
     {
         // Verification du state pour prevenir CSRF
         if ($state !== session('keymex_sso_state')) {
             throw new \Exception('Invalid state parameter - possible CSRF attack');
         }
 
-        session()->forget('keymex_sso_state');
+        // Utiliser l'URI stockee en session ou celle fournie
+        $redirectUri = $customRedirectUri ?? session('keymex_sso_redirect_uri') ?? $this->redirectUri;
+
+        session()->forget(['keymex_sso_state', 'keymex_sso_redirect_uri']);
 
         // Echange du code contre des tokens
         $response = Http::asForm()->post($this->baseUrl . '/api/oauth/token', [
@@ -55,7 +71,7 @@ class KeymexSSOService
             'client_id' => $this->clientId,
             'client_secret' => $this->clientSecret,
             'code' => $code,
-            'redirect_uri' => $this->redirectUri,
+            'redirect_uri' => $redirectUri,
         ]);
 
         if (!$response->successful()) {

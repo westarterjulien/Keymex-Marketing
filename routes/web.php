@@ -7,6 +7,7 @@ use App\Livewire\Orders\OrderShow;
 use App\Livewire\Properties\PropertyForSale;
 use App\Livewire\Properties\PropertyIndex;
 use App\Livewire\Settings\OrderSettings;
+use App\Livewire\Settings\SignatureSettings;
 use App\Livewire\Settings\SmtpSettings;
 use App\Livewire\Settings\SsoSettings;
 use App\Livewire\StandaloneBat\BatCreate;
@@ -84,6 +85,7 @@ Route::middleware(['auth'])->group(function () {
 
     // Configuration
     Route::get('/configuration/commandes', OrderSettings::class)->name('settings.orders');
+    Route::get('/configuration/signatures', SignatureSettings::class)->name('settings.signatures');
     Route::get('/configuration/sso', SsoSettings::class)->name('settings.sso');
     Route::get('/configuration/smtp', SmtpSettings::class)->name('settings.smtp');
 
