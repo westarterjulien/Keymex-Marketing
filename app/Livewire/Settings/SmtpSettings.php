@@ -5,6 +5,7 @@ namespace App\Livewire\Settings;
 use App\Models\SmtpSetting;
 use Illuminate\Support\Facades\Mail;
 use Livewire\Component;
+use Symfony\Component\Mailer\Transport\Smtp\EsmtpTransport;
 
 class SmtpSettings extends Component
 {
@@ -20,6 +21,7 @@ class SmtpSettings extends Component
 
     public bool $showPassword = false;
     public bool $testing = false;
+    public bool $testingConnection = false;
     public string $testEmail = '';
 
     protected function rules(): array
@@ -106,6 +108,42 @@ class SmtpSettings extends Component
     public function togglePassword(): void
     {
         $this->showPassword = !$this->showPassword;
+    }
+
+    public function testSmtpConnection(): void
+    {
+        if (empty($this->mail_host) || empty($this->mail_port)) {
+            session()->flash('error', 'Veuillez renseigner le serveur et le port SMTP.');
+            return;
+        }
+
+        $this->testingConnection = true;
+
+        try {
+            $password = $this->mail_password ?: SmtpSetting::getInstance()->mail_password;
+            $encryption = $this->mail_encryption === 'null' ? false : ($this->mail_encryption === 'ssl');
+
+            $transport = new EsmtpTransport(
+                $this->mail_host,
+                $this->mail_port,
+                $encryption
+            );
+
+            if (!empty($this->mail_username) && !empty($password)) {
+                $transport->setUsername($this->mail_username);
+                $transport->setPassword($password);
+            }
+
+            // Test la connexion
+            $transport->start();
+            $transport->stop();
+
+            session()->flash('success', 'Connexion SMTP reussie ! Le serveur ' . $this->mail_host . ':' . $this->mail_port . ' est accessible.');
+        } catch (\Exception $e) {
+            session()->flash('error', 'Echec de connexion: ' . $e->getMessage());
+        }
+
+        $this->testingConnection = false;
     }
 
     public function testConnection(): void
