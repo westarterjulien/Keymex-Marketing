@@ -846,6 +846,13 @@ class MongoPropertyService
     /**
      * Récupère TOUS les conseillers actifs avec leur CA sur une période
      * Utilisé pour la page KeyPerformeurs
+     *
+     * LOGIQUE DE CALCUL:
+     * - Source: collection sale_files (dossiers de vente)
+     * - Filtre: date_compromis dans la période, non annulé
+     * - Calcul: (seller_fees + buyer_fees) / 1.20 = honoraires HT
+     * - Répartition: par nego selon leur percentage dans le tableau fees
+     *
      * Inclut tous les conseillers actifs, même ceux avec 0€ de CA
      */
     public function getAllConseillersCA(Carbon $startDate, Carbon $endDate): array
@@ -860,27 +867,36 @@ class MongoPropertyService
                 'id' => $advisor['id'],
                 'name' => $advisor['name'],
                 'ca' => 0,
-                'nb_compromis' => 0,
+                'nb_dossiers' => 0,
             ];
         }
 
-        // 3. Ajouter les données CA des compromis (en HT)
-        // Les honoraires sont en TTC, on applique la TVA à 20%
-        $allCompromis = $this->getAllCompromisData();
+        // 3. Charger les données sale_files et répartir le CA par nego
+        $allSaleFiles = $this->getAllSaleFilesCAData();
         $startStr = $startDate->format('Y-m-d');
         $endStr = $endDate->format('Y-m-d');
 
-        foreach ($allCompromis as $c) {
-            if ($c['date'] >= $startStr && $c['date'] <= $endStr) {
-                $advisorId = $c['advisor_id'] ?: 0;
-                // Conversion TTC → HT (TVA 20%)
-                $caTTC = $c['seller_fees'] + $c['buyer_fees'];
-                $caHT = $caTTC / 1.20;
+        foreach ($allSaleFiles as $dossier) {
+            // Vérifier que la date est dans la période
+            if ($dossier['date'] >= $startStr && $dossier['date'] <= $endStr) {
+                // Répartir le CA entre les negos
+                foreach ($dossier['negos'] as $nego) {
+                    $negoId = $nego['nego_id'];
+                    $partHT = $nego['part_ht'];
 
-                // Si le conseiller existe dans notre liste (actif)
-                if (isset($conseillers[$advisorId])) {
-                    $conseillers[$advisorId]['ca'] += $caHT;
-                    $conseillers[$advisorId]['nb_compromis']++;
+                    // Si le conseiller existe dans notre liste (actif)
+                    if (isset($conseillers[$negoId])) {
+                        $conseillers[$negoId]['ca'] += $partHT;
+                        $conseillers[$negoId]['nb_dossiers']++;
+                    } else {
+                        // Conseiller non actif mais avec du CA - on l'ajoute quand même
+                        $conseillers[$negoId] = [
+                            'id' => $negoId,
+                            'name' => $nego['nego_name'],
+                            'ca' => $partHT,
+                            'nb_dossiers' => 1,
+                        ];
+                    }
                 }
             }
         }
@@ -888,7 +904,7 @@ class MongoPropertyService
         // 4. Ajouter la catégorie à chaque conseiller
         foreach ($conseillers as &$conseiller) {
             $conseiller['category'] = \App\Livewire\Kpi\KeyPerformeurs::getCategory($conseiller['ca']);
-            $conseiller['ca_formatted'] = number_format($conseiller['ca'] / 1000, 0, ',', ' ') . 'K€ HT';
+            $conseiller['ca_formatted'] = number_format($conseiller['ca'] / 1000, 1, ',', ' ') . 'K€ HT';
         }
 
         // 5. Trier par CA décroissant
@@ -907,6 +923,111 @@ class MongoPropertyService
      */
     protected const ADVISORS_CACHE_KEY = 'kpi_all_active_advisors';
     protected const ADVISORS_CACHE_TTL = 600; // 10 minutes
+
+    /**
+     * Cache des sale_files pour le calcul du CA par nego
+     */
+    protected const SALE_FILES_CA_CACHE_KEY = 'kpi_sale_files_ca_data';
+    protected const SALE_FILES_CA_CACHE_TTL = 600; // 10 minutes
+
+    /**
+     * Précharge TOUS les sale_files avec leurs fees pour le calcul du CA par nego
+     * Retourne un tableau avec date_compromis, honoraires HT et répartition par nego
+     */
+    protected function getAllSaleFilesCAData(): array
+    {
+        return Cache::remember(self::SALE_FILES_CA_CACHE_KEY, self::SALE_FILES_CA_CACHE_TTL, function () {
+            $agencySlug = config('keymex.agence.slug', 'keymex-synergie');
+            $db = $this->getMongoDb();
+            $saleFiles = $db->selectCollection('sale_files');
+
+            // Récupérer tous les dossiers avec une date_compromis valide
+            $cursor = $saleFiles->find([
+                'agency_slug' => $agencySlug,
+                'raw_data.date_compromis' => ['$exists' => true, '$ne' => null, '$ne' => '0000-00-00'],
+            ], [
+                'projection' => [
+                    'raw_data.date_compromis' => 1,
+                    'raw_data.date_annulation' => 1,
+                    'raw_data.seller_fees' => 1,
+                    'raw_data.buyer_fees' => 1,
+                    'raw_data.fees' => 1,
+                ]
+            ]);
+
+            $allData = [];
+
+            foreach ($cursor as $dossier) {
+                $raw = (array) ($dossier['raw_data'] ?? []);
+
+                // 1. Filtrer les dossiers valides
+                $dateCompromis = $raw['date_compromis'] ?? null;
+                if (!$dateCompromis || $dateCompromis === '0000-00-00') {
+                    continue;
+                }
+
+                // 2. Exclure les annulés
+                $dateAnnulation = $raw['date_annulation'] ?? null;
+                if ($dateAnnulation && $dateAnnulation !== '0000-00-00' && $dateAnnulation !== '') {
+                    continue;
+                }
+
+                // 3. Extraire la date (format Y-m-d)
+                try {
+                    $datePart = preg_replace('/[T ].*$/', '', $dateCompromis);
+                    // Valider que c'est une date valide
+                    Carbon::parse($datePart);
+                } catch (\Exception $e) {
+                    continue;
+                }
+
+                // 4. Calculer les honoraires HT
+                $sellerFees = (float) ($raw['seller_fees'] ?? 0);
+                $buyerFees = (float) ($raw['buyer_fees'] ?? 0);
+                $totalTTC = $sellerFees + $buyerFees;
+                $honorairesHT = $totalTTC / 1.20;
+
+                // 5. Répartir par conseiller (fees avec person_type = 'nego')
+                $fees = (array) ($raw['fees'] ?? []);
+                $negoDistribution = [];
+
+                foreach ($fees as $fee) {
+                    $fee = (array) $fee;
+
+                    // Uniquement les intervenants de type "nego"
+                    if (($fee['person_type'] ?? '') === 'nego') {
+                        $percentage = (float) ($fee['percentage'] ?? 0);
+                        $partHT = ($honorairesHT * $percentage) / 100;
+
+                        // Récupérer l'ID et nom du conseiller
+                        $nego = (array) ($fee['nego'] ?? []);
+                        $negoId = (int) ($nego['id'] ?? 0);
+                        $negoNom = trim(($nego['firstname'] ?? '') . ' ' . ($nego['lastname'] ?? ''));
+
+                        if ($negoId > 0 && $partHT > 0) {
+                            $negoDistribution[] = [
+                                'nego_id' => $negoId,
+                                'nego_name' => $negoNom,
+                                'percentage' => $percentage,
+                                'part_ht' => $partHT,
+                            ];
+                        }
+                    }
+                }
+
+                // Ajouter le dossier s'il y a des negos
+                if (!empty($negoDistribution)) {
+                    $allData[] = [
+                        'date' => $datePart,
+                        'honoraires_ht' => $honorairesHT,
+                        'negos' => $negoDistribution,
+                    ];
+                }
+            }
+
+            return $allData;
+        });
+    }
 
     /**
      * Récupère tous les conseillers actifs depuis MongoDB

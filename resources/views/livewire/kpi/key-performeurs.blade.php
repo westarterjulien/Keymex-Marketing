@@ -181,7 +181,7 @@
                         <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider w-16">#</th>
                         <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Conseiller</th>
                         <th class="px-6 py-3 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">Catégorie</th>
-                        <th class="px-6 py-3 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">Compromis</th>
+                        <th class="px-6 py-3 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">Dossiers</th>
                         <th class="px-6 py-3 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">CA HT</th>
                     </tr>
                 </thead>
@@ -223,7 +223,7 @@
                                 </span>
                             </td>
                             <td class="px-6 py-4 text-center">
-                                <span class="text-sm text-gray-600">{{ $conseiller['nb_compromis'] }}</span>
+                                <span class="text-sm text-gray-600">{{ $conseiller['nb_dossiers'] }}</span>
                             </td>
                             <td class="px-6 py-4 text-right">
                                 <span class="font-semibold {{ $isTop3 ? 'text-keymex-red text-base' : 'text-gray-900 text-sm' }}">
