@@ -49,4 +49,16 @@ return [
         'redirect_uri' => env('KEYMEX_REDIRECT_URI'),
     ],
 
+    'meta' => [
+        'access_token' => env('META_ACCESS_TOKEN'),
+        'facebook_page_id' => env('META_FACEBOOK_PAGE_ID'),
+        'instagram_account_id' => env('META_INSTAGRAM_ACCOUNT_ID'),
+        'api_version' => env('META_API_VERSION', 'v21.0'),
+    ],
+
+    'openai' => [
+        'api_key' => env('OPENAI_API_KEY'),
+        'model' => env('OPENAI_MODEL', 'gpt-4'),
+    ],
+
 ];
