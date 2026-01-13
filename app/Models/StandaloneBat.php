@@ -2,9 +2,11 @@
 
 namespace App\Models;
 
+use App\Mail\BatValidationMail;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 
 class StandaloneBat extends Model
@@ -138,6 +140,11 @@ class StandaloneBat extends Model
             'sent_at' => now(),
             'token_expires_at' => now()->addDays(30),
         ]);
+
+        // Envoyer l'email de validation au conseiller
+        if ($this->advisor_email) {
+            Mail::to($this->advisor_email)->send(new BatValidationMail($this));
+        }
 
         $this->logEvent('sent');
     }
