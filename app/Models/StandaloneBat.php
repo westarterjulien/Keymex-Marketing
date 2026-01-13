@@ -239,7 +239,7 @@ class StandaloneBat extends Model
     }
 
     /**
-     * Retourne l'URL publique du fichier BAT
+     * Retourne l'URL du fichier BAT (URL signée pour S3 privé)
      */
     public function getFileUrlAttribute(): ?string
     {
@@ -250,8 +250,8 @@ class StandaloneBat extends Model
         $disk = $this->storage_disk ?? 'public';
 
         if ($disk === 's3') {
-            // Pour S3, on utilise l'URL publique ou signée
-            return Storage::disk('s3')->url($this->file_path);
+            // Pour S3 privé, on utilise une URL signée temporaire (valide 60 minutes)
+            return Storage::disk('s3')->temporaryUrl($this->file_path, now()->addMinutes(60));
         }
 
         // Pour le stockage local
