@@ -1,7 +1,31 @@
 <div>
     <div>
-        <h1 class="text-2xl font-bold text-gray-900">Biens sous compromis</h1>
-        <p class="mt-1 text-sm text-gray-500">Suivi des biens en attente de communication RS</p>
+        <h1 class="text-2xl font-bold text-gray-900">Biens immobiliers</h1>
+        <p class="mt-1 text-sm text-gray-500">Suivi des biens pour communication RS</p>
+    </div>
+
+    {{-- Onglets --}}
+    <div class="mt-6 border-b border-gray-200">
+        <nav class="-mb-px flex space-x-8" aria-label="Tabs">
+            <button wire:click="setTab('compromis')"
+                    class="whitespace-nowrap border-b-2 py-4 px-1 text-sm font-medium transition-colors {{ $activeTab === 'compromis' ? 'border-keymex-red text-keymex-red' : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700' }}">
+                Sous compromis
+                @if($activeTab === 'compromis' && $compromisProperties->count() > 0)
+                    <span class="ml-2 rounded-full bg-keymex-red/10 px-2.5 py-0.5 text-xs font-medium text-keymex-red">
+                        {{ $compromisProperties->count() }}
+                    </span>
+                @endif
+            </button>
+            <button wire:click="setTab('vendus')"
+                    class="whitespace-nowrap border-b-2 py-4 px-1 text-sm font-medium transition-colors {{ $activeTab === 'vendus' ? 'border-keymex-red text-keymex-red' : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700' }}">
+                Vendus (Actes signes)
+                @if($activeTab === 'vendus' && $soldProperties->count() > 0)
+                    <span class="ml-2 rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-700">
+                        {{ $soldProperties->count() }}
+                    </span>
+                @endif
+            </button>
+        </nav>
     </div>
 
     @if($mongoDbError)
@@ -43,6 +67,8 @@
         </div>
 
         <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            {{-- Onglet Compromis --}}
+            @if($activeTab === 'compromis')
             @forelse($compromisProperties as $property)
                 @php
                     $deadline = isset($property['dates']['legal_deadline']) ? \Carbon\Carbon::parse($property['dates']['legal_deadline']) : null;
@@ -188,6 +214,146 @@
                     </div>
                 </div>
             @endforelse
+            @endif
+
+            {{-- Onglet Vendus --}}
+            @if($activeTab === 'vendus')
+            @forelse($soldProperties as $property)
+                @php
+                    $communication = $communications[$property['id']] ?? null;
+                    $saleDuration = $property['sale_duration_days'] ?? null;
+                @endphp
+                <div class="bg-white shadow rounded-lg overflow-hidden">
+                    {{-- Bandeau Vendu --}}
+                    <div class="bg-green-600 px-3 py-1.5 text-center">
+                        <p class="text-xs font-medium text-white">Vendu - Acte signe</p>
+                    </div>
+
+                    {{-- Photo principale --}}
+                    <div class="relative h-32 bg-gray-100">
+                        @if(!empty($property['photos']))
+                            <img src="{{ $property['photos'][0] }}"
+                                 alt="{{ $property['reference'] }}"
+                                 class="h-full w-full object-cover cursor-pointer"
+                                 wire:click="openPhotoModal({{ json_encode($property['photos']) }}, '{{ $property['reference'] }}')" />
+                            @if(count($property['photos']) > 1)
+                                <span class="absolute bottom-1 right-1 bg-black/70 text-white text-[10px] px-1.5 py-0.5 rounded">
+                                    {{ count($property['photos']) }} photos
+                                </span>
+                            @endif
+                        @else
+                            <div class="h-full w-full flex items-center justify-center">
+                                <svg class="h-10 w-10 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5zm10.5-11.25h.008v.008h-.008V8.25zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
+                                </svg>
+                            </div>
+                        @endif
+
+                        {{-- Badge communication RS --}}
+                        @if(in_array($property['id'], $communicatedIds))
+                            <span class="absolute top-1 left-1 bg-green-500 text-white text-[10px] px-1.5 py-0.5 rounded-full flex items-center gap-0.5">
+                                <svg class="h-2.5 w-2.5" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+                                </svg>
+                                RS
+                            </span>
+                        @endif
+                    </div>
+
+                    <div class="p-3">
+                        <div class="flex items-start justify-between gap-2">
+                            <div class="min-w-0">
+                                <p class="text-xs font-medium text-keymex-red">{{ $property['reference'] }}</p>
+                                <h3 class="text-sm font-semibold text-gray-900 truncate">{{ $property['type'] }}</h3>
+                                <p class="text-xs text-gray-500 truncate">{{ $property['address']['city'] }}</p>
+                            </div>
+                            @if($property['price'])
+                                <p class="text-sm font-bold text-gray-900 whitespace-nowrap">
+                                    {{ number_format($property['price'] / 1000, 0, ',', ' ') }}k
+                                </p>
+                            @endif
+                        </div>
+
+                        <div class="mt-2 flex flex-wrap items-center gap-1.5 text-xs text-gray-500">
+                            @if($property['surface'])
+                                <span>{{ $property['surface'] }}m2</span>
+                            @endif
+                            @if($property['rooms'])
+                                <span>{{ $property['rooms'] }}p</span>
+                            @endif
+                            @if($property['bedrooms'])
+                                <span>{{ $property['bedrooms'] }}ch</span>
+                            @endif
+                        </div>
+
+                        {{-- Commission --}}
+                        @if(isset($property['commission']) && $property['commission'] > 0)
+                            <div class="mt-2">
+                                <span class="inline-flex items-center gap-1 text-xs font-medium px-2 py-1 rounded text-green-700 bg-green-50">
+                                    Commission: {{ number_format($property['commission'], 0, ',', ' ') }} EUR
+                                </span>
+                            </div>
+                        @endif
+
+                        {{-- Duree de vente --}}
+                        @if($saleDuration !== null)
+                            <div class="mt-2">
+                                <span class="inline-flex items-center gap-1 text-xs font-medium px-2 py-1 rounded {{ $saleDuration <= 60 ? 'text-green-700 bg-green-50' : ($saleDuration <= 120 ? 'text-yellow-700 bg-yellow-50' : 'text-gray-600 bg-gray-100') }}" title="Duree entre mandat et acte">
+                                    <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                    Vendu en {{ $saleDuration }} jours
+                                </span>
+                            </div>
+                        @endif
+
+                        <div class="mt-2 pt-2 border-t border-gray-100 flex items-center justify-between text-xs">
+                            <span class="text-gray-500 truncate">{{ $property['advisor']['name'] }}</span>
+                            <span class="text-gray-400">Acte: {{ $property['dates']['sale'] ? \Carbon\Carbon::parse($property['dates']['sale'])->format('d/m/Y') : '-' }}</span>
+                        </div>
+
+                        {{-- Communication RS --}}
+                        <div class="mt-2 pt-2 border-t border-gray-100">
+                            <button wire:click="openCommunicationModal('{{ $property['id'] }}', '{{ $property['reference'] }}')"
+                                    class="w-full flex items-center justify-between text-left hover:bg-gray-50 rounded px-1 py-0.5 -mx-1 transition-colors">
+                                <div class="flex items-center gap-2">
+                                    @if($communication)
+                                        <span class="flex h-4 w-4 items-center justify-center rounded bg-green-500 text-white">
+                                            <svg class="h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
+                                                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+                                            </svg>
+                                        </span>
+                                    @else
+                                        <span class="flex h-4 w-4 items-center justify-center rounded border border-gray-300 bg-white">
+                                        </span>
+                                    @endif
+                                    <span class="text-xs font-medium text-gray-700">Communication RS</span>
+                                </div>
+                                @if($communication)
+                                    <span class="text-[10px] text-gray-400">{{ $communication->action_date->format('d/m/Y') }}</span>
+                                @endif
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            @empty
+                <div class="col-span-full">
+                    <div class="bg-white shadow rounded-lg px-6 py-12 text-center">
+                        <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M2.25 21h19.5m-18-18v18m10.5-18v18m6-13.5V21M6.75 6.75h.75m-.75 3h.75m-.75 3h.75m3-6h.75m-.75 3h.75m-.75 3h.75M6.75 21v-3.375c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21M3 3h12m-.75 4.5H21m-3.75 3.75h.008v.008h-.008v-.008zm0 3h.008v.008h-.008v-.008zm0 3h.008v.008h-.008v-.008z" />
+                        </svg>
+                        <h3 class="mt-2 text-sm font-medium text-gray-900">Aucun bien vendu</h3>
+                        <p class="mt-1 text-sm text-gray-500">
+                            @if($search)
+                                Aucun resultat pour "{{ $search }}".
+                            @else
+                                Il n'y a pas de biens vendus recemment.
+                            @endif
+                        </p>
+                    </div>
+                </div>
+            @endforelse
+            @endif
         </div>
     </div>
 

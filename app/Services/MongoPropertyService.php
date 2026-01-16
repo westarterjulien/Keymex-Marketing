@@ -876,9 +876,12 @@ class MongoPropertyService
         $startStr = $startDate->format('Y-m-d');
         $endStr = $endDate->format('Y-m-d');
 
-        foreach ($allSaleFiles as $dossier) {
+        foreach ($allSaleFiles as $dossierIndex => $dossier) {
             // Vérifier que la date est dans la période
             if ($dossier['date'] >= $startStr && $dossier['date'] <= $endStr) {
+                // Tracker les negos déjà comptés pour ce dossier (éviter de compter 2x si entrée+sortie)
+                $negosComptesParDossier = [];
+
                 // Répartir le CA entre les negos
                 foreach ($dossier['negos'] as $nego) {
                     $negoId = $nego['nego_id'];
@@ -887,7 +890,11 @@ class MongoPropertyService
                     // Si le conseiller existe dans notre liste (actif)
                     if (isset($conseillers[$negoId])) {
                         $conseillers[$negoId]['ca'] += $partHT;
-                        $conseillers[$negoId]['nb_dossiers']++;
+                        // Compter le dossier une seule fois par conseiller (même si entrée+sortie)
+                        if (!isset($negosComptesParDossier[$negoId])) {
+                            $conseillers[$negoId]['nb_dossiers']++;
+                            $negosComptesParDossier[$negoId] = true;
+                        }
                     } else {
                         // Conseiller non actif mais avec du CA - on l'ajoute quand même
                         $conseillers[$negoId] = [
@@ -896,6 +903,7 @@ class MongoPropertyService
                             'ca' => $partHT,
                             'nb_dossiers' => 1,
                         ];
+                        $negosComptesParDossier[$negoId] = true;
                     }
                 }
             }

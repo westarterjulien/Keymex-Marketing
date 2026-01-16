@@ -127,8 +127,9 @@ class PropertyIndex extends Component
                             || str_contains(strtolower($property['advisor']['name'] ?? ''), $search);
                     });
                 }
-            } else {
-                $soldProperties = $this->propertyService->getRecentlySold($this->soldDays);
+            } elseif ($this->activeTab === 'vendus') {
+                // Biens vendus (avec date d'acte)
+                $soldProperties = $this->propertyService->getSoldProperties(100);
 
                 // Filtrer les biens sans photos
                 $soldProperties = $soldProperties->filter(fn ($p) => !empty($p['photos']));
