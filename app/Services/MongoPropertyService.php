@@ -806,7 +806,7 @@ class MongoPropertyService
         $photos = $number ? $this->getPhotosForCompromis($number) : [];
 
         return [
-            'id' => (string) ($property->_id ?? ''),
+            'id' => (string) ($property->id ?? $property->_id ?? ''),
             'reference' => 'IF-' . ($number ?? 'N/A'),
             'number' => $number,
             'type' => $typeBien,

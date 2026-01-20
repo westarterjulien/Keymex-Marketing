@@ -409,7 +409,7 @@
                         </label>
                         <input type="date"
                                id="communication-date"
-                               wire:model="communicationDate"
+                               wire:model.live="communicationDate"
                                class="block w-full rounded-md border-0 py-2 px-3 text-gray-900 ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-keymex-red sm:text-sm" />
                         <p class="mt-2 text-xs text-gray-500">
                             Selectionnez la date de publication sur les reseaux sociaux (passee, aujourd'hui ou future).

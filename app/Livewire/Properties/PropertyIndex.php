@@ -72,6 +72,16 @@ class PropertyIndex extends Component
 
     public function saveCommunication(): void
     {
+        \Log::info('saveCommunication called', [
+            'propertyId' => $this->communicationPropertyId,
+            'date' => $this->communicationDate,
+        ]);
+
+        if (empty($this->communicationPropertyId)) {
+            \Log::error('communicationPropertyId is empty!');
+            return;
+        }
+
         $date = Carbon::parse($this->communicationDate);
 
         PropertyCommunication::updateOrCreate(
