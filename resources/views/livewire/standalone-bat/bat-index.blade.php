@@ -74,29 +74,71 @@
                 </div>
             </div>
 
-            {{-- Status Filter --}}
-            <div class="sm:w-56 relative">
-                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            {{-- Status Filter (Custom Dropdown) --}}
+            @php
+                $statusOptions = [
+                    '' => ['label' => 'Tous les statuts', 'color' => 'bg-gray-100 text-gray-600', 'dot' => 'bg-gray-400'],
+                    'draft' => ['label' => 'Brouillon', 'color' => 'bg-gray-100 text-gray-700', 'dot' => 'bg-gray-400'],
+                    'sent' => ['label' => 'Envoye', 'color' => 'bg-yellow-100 text-yellow-700', 'dot' => 'bg-yellow-500'],
+                    'validated' => ['label' => 'Valide', 'color' => 'bg-green-100 text-green-700', 'dot' => 'bg-green-500'],
+                    'refused' => ['label' => 'Refuse', 'color' => 'bg-red-100 text-red-700', 'dot' => 'bg-red-500'],
+                    'modifications_requested' => ['label' => 'Modifications', 'color' => 'bg-orange-100 text-orange-700', 'dot' => 'bg-orange-500'],
+                    'converted' => ['label' => 'Converti', 'color' => 'bg-purple-100 text-purple-700', 'dot' => 'bg-purple-500'],
+                ];
+                $currentStatus = $statusOptions[$statusFilter] ?? $statusOptions[''];
+            @endphp
+            <div class="sm:w-56 relative" x-data="{ open: false }" @click.away="open = false">
+                {{-- Trigger Button --}}
+                <button
+                    type="button"
+                    @click="open = !open"
+                    class="w-full flex items-center gap-2 pl-3 pr-10 py-2.5 rounded-xl border border-gray-200 bg-gray-50 text-sm text-gray-700 hover:bg-white hover:border-gray-300 focus:bg-white focus:border-keymex-red focus:ring-2 focus:ring-keymex-red/20 transition-all duration-200 cursor-pointer text-left"
+                >
+                    <svg class="h-5 w-5 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"/>
                     </svg>
-                </div>
-                <select
-                    wire:model.live="statusFilter"
-                    class="w-full pl-10 pr-10 py-2.5 rounded-xl border border-gray-200 bg-gray-50 text-sm text-gray-700 focus:bg-white focus:border-keymex-red focus:ring-2 focus:ring-keymex-red/20 transition-all duration-200 appearance-none cursor-pointer"
-                >
-                    <option value="">Tous les statuts</option>
-                    <option value="draft">Brouillon</option>
-                    <option value="sent">Envoye</option>
-                    <option value="validated">Valide</option>
-                    <option value="refused">Refuse</option>
-                    <option value="modifications_requested">Modifications</option>
-                    <option value="converted">Converti</option>
-                </select>
+                    <span class="flex items-center gap-2 flex-1">
+                        <span class="h-2 w-2 rounded-full {{ $currentStatus['dot'] }}"></span>
+                        <span>{{ $currentStatus['label'] }}</span>
+                    </span>
+                </button>
+                {{-- Chevron --}}
                 <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
-                    <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg class="h-5 w-5 text-gray-400 transition-transform duration-200" :class="{ 'rotate-180': open }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
                     </svg>
+                </div>
+
+                {{-- Dropdown Menu --}}
+                <div
+                    x-show="open"
+                    x-transition:enter="transition ease-out duration-100"
+                    x-transition:enter-start="opacity-0 scale-95"
+                    x-transition:enter-end="opacity-100 scale-100"
+                    x-transition:leave="transition ease-in duration-75"
+                    x-transition:leave-start="opacity-100 scale-100"
+                    x-transition:leave-end="opacity-0 scale-95"
+                    class="absolute z-50 mt-2 w-full bg-white rounded-xl shadow-lg border border-gray-200 py-1 overflow-hidden"
+                    style="display: none;"
+                >
+                    @foreach($statusOptions as $value => $option)
+                        <button
+                            type="button"
+                            wire:click="$set('statusFilter', '{{ $value }}')"
+                            @click="open = false"
+                            class="w-full flex items-center gap-3 px-4 py-2.5 text-sm hover:bg-gray-50 transition-colors {{ $statusFilter === $value ? 'bg-red-50' : '' }}"
+                        >
+                            <span class="h-2.5 w-2.5 rounded-full {{ $option['dot'] }}"></span>
+                            <span class="flex-1 text-left {{ $statusFilter === $value ? 'font-medium text-keymex-red' : 'text-gray-700' }}">
+                                {{ $option['label'] }}
+                            </span>
+                            @if($statusFilter === $value)
+                                <svg class="h-4 w-4 text-keymex-red" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                                </svg>
+                            @endif
+                        </button>
+                    @endforeach
                 </div>
             </div>
         </div>
