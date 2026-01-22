@@ -22,6 +22,9 @@ class BatShow extends Component
     public bool $showConvertModal = false;
     public ?string $orderedAt = null;
     public ?string $expectedDeliveryAt = null;
+    public ?int $quantity = null;
+    public ?string $price = null;
+    public string $deliveryTime = '';
 
     public function mount(StandaloneBat $bat): void
     {
@@ -116,6 +119,9 @@ class BatShow extends Component
         $this->showConvertModal = true;
         $this->orderedAt = now()->format('Y-m-d');
         $this->expectedDeliveryAt = null;
+        $this->quantity = $this->bat->quantity ?? 1;
+        $this->price = $this->bat->price ? (string) $this->bat->price : null;
+        $this->deliveryTime = $this->bat->delivery_time ?? '';
     }
 
     public function closeConvertModal(): void
@@ -123,6 +129,9 @@ class BatShow extends Component
         $this->showConvertModal = false;
         $this->orderedAt = now()->format('Y-m-d');
         $this->expectedDeliveryAt = null;
+        $this->quantity = null;
+        $this->price = null;
+        $this->deliveryTime = '';
     }
 
     public function convertToOrder(): void
@@ -130,9 +139,14 @@ class BatShow extends Component
         $this->validate([
             'orderedAt' => 'required|date',
             'expectedDeliveryAt' => 'nullable|date|after_or_equal:orderedAt',
+            'quantity' => 'required|integer|min:1',
+            'price' => 'nullable|numeric|min:0',
+            'deliveryTime' => 'nullable|string|max:255',
         ], [
             'orderedAt.required' => 'La date de commande est obligatoire.',
             'expectedDeliveryAt.after_or_equal' => 'La date de livraison doit etre apres la date de commande.',
+            'quantity.required' => 'La quantite est obligatoire.',
+            'quantity.min' => 'La quantite doit etre au moins 1.',
         ]);
 
         if (!$this->bat->canBeConvertedToOrder()) {
@@ -159,19 +173,24 @@ class BatShow extends Component
             'support_type_id' => $this->bat->support_type_id,
             'format_id' => $this->bat->format_id,
             'category_id' => $this->bat->category_id,
-            'quantity' => $this->bat->quantity ?? 1,
+            'quantity' => $this->quantity,
             'notes' => $this->bat->title,
         ]);
 
-        // Link BAT to order
+        // Update BAT with order info and conversion details
         $this->bat->update([
             'order_id' => $order->id,
             'status' => 'converted',
+            'quantity' => $this->quantity,
+            'price' => $this->price ? (float) $this->price : null,
+            'delivery_time' => $this->deliveryTime ?: null,
         ]);
 
         // Log conversion
         $this->bat->logEvent('converted_to_order', null, [
             'order_id' => $order->id,
+            'quantity' => $this->quantity,
+            'price' => $this->price,
         ]);
 
         $this->bat->refresh();

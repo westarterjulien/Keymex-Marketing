@@ -28,9 +28,6 @@ class BatCreate extends Component
     public ?int $formatId = null;
     public ?int $categoryId = null;
     public string $grammage = '';
-    public ?string $price = null;
-    public string $deliveryTime = '';
-    public ?int $quantity = null;
     public $batFile;
 
     // Formats disponibles selon le type de support
@@ -125,9 +122,6 @@ class BatCreate extends Component
             'title' => $this->title ?: null,
             'description' => $this->description ?: null,
             'grammage' => $this->grammage ?: null,
-            'price' => $this->price ? (float) $this->price : null,
-            'delivery_time' => $this->deliveryTime ?: null,
-            'quantity' => $this->quantity ?: null,
             'status' => 'draft',
             'created_by' => auth()->id(),
         ]);

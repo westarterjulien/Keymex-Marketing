@@ -205,54 +205,6 @@
                         placeholder="Ex: 350g, 135g mat..."
                     >
                 </div>
-
-                {{-- Quantite --}}
-                <div>
-                    <label for="quantity" class="block text-sm font-medium text-gray-700 mb-1">
-                        Quantite
-                    </label>
-                    <input
-                        type="number"
-                        wire:model="quantity"
-                        id="quantity"
-                        min="1"
-                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-keymex-red focus:border-keymex-red"
-                        placeholder="Ex: 500"
-                    >
-                </div>
-
-                {{-- Prix HT --}}
-                <div>
-                    <label for="price" class="block text-sm font-medium text-gray-700 mb-1">
-                        Prix HT
-                    </label>
-                    <div class="relative">
-                        <input
-                            type="number"
-                            wire:model="price"
-                            id="price"
-                            step="0.01"
-                            min="0"
-                            class="w-full px-4 py-2 pr-12 border border-gray-300 rounded-lg focus:ring-2 focus:ring-keymex-red focus:border-keymex-red"
-                            placeholder="0.00"
-                        >
-                        <span class="absolute inset-y-0 right-0 flex items-center pr-4 text-gray-500">EUR</span>
-                    </div>
-                </div>
-
-                {{-- Delai de livraison --}}
-                <div class="sm:col-span-2 lg:col-span-3">
-                    <label for="deliveryTime" class="block text-sm font-medium text-gray-700 mb-1">
-                        Delai de livraison
-                    </label>
-                    <input
-                        type="text"
-                        wire:model="deliveryTime"
-                        id="deliveryTime"
-                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-keymex-red focus:border-keymex-red"
-                        placeholder="Ex: 5 jours ouvres..."
-                    >
-                </div>
             </div>
         </div>
 

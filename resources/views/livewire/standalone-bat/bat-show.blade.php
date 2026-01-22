@@ -652,9 +652,63 @@
                                     @enderror
                                 </div>
 
+                                {{-- Quantity --}}
+                                <div>
+                                    <label for="quantity" class="block text-sm font-medium text-gray-700 mb-1">
+                                        Quantite <span class="text-red-500">*</span>
+                                    </label>
+                                    <input
+                                        type="number"
+                                        id="quantity"
+                                        wire:model="quantity"
+                                        min="1"
+                                        class="w-full rounded-lg border-gray-300 shadow-sm focus:border-keymex-red focus:ring-keymex-red"
+                                        placeholder="Ex: 100"
+                                    >
+                                    @error('quantity')
+                                        <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                                    @enderror
+                                </div>
+
+                                {{-- Price HT --}}
+                                <div>
+                                    <label for="price" class="block text-sm font-medium text-gray-700 mb-1">
+                                        Prix HT (EUR)
+                                    </label>
+                                    <input
+                                        type="number"
+                                        id="price"
+                                        wire:model="price"
+                                        step="0.01"
+                                        min="0"
+                                        class="w-full rounded-lg border-gray-300 shadow-sm focus:border-keymex-red focus:ring-keymex-red"
+                                        placeholder="Ex: 150.00"
+                                    >
+                                    @error('price')
+                                        <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                                    @enderror
+                                </div>
+
+                                {{-- Delivery Time --}}
+                                <div>
+                                    <label for="deliveryTime" class="block text-sm font-medium text-gray-700 mb-1">
+                                        Delai de livraison
+                                    </label>
+                                    <input
+                                        type="text"
+                                        id="deliveryTime"
+                                        wire:model="deliveryTime"
+                                        class="w-full rounded-lg border-gray-300 shadow-sm focus:border-keymex-red focus:ring-keymex-red"
+                                        placeholder="Ex: 5 jours ouvrés"
+                                    >
+                                    @error('deliveryTime')
+                                        <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                                    @enderror
+                                </div>
+
                                 {{-- Summary --}}
                                 <div class="bg-gray-50 rounded-lg p-4 space-y-2">
-                                    <h4 class="text-sm font-medium text-gray-700">Resume de la commande</h4>
+                                    <h4 class="text-sm font-medium text-gray-700">Resume du BAT</h4>
                                     <div class="text-sm text-gray-600 space-y-1">
                                         <p><span class="font-medium">Conseiller :</span> {{ $bat->advisor_name }}</p>
                                         @if($bat->supportType)
@@ -663,8 +717,8 @@
                                         @if($bat->format)
                                             <p><span class="font-medium">Format :</span> {{ $bat->format->name }}</p>
                                         @endif
-                                        @if($bat->quantity)
-                                            <p><span class="font-medium">Quantite :</span> {{ number_format($bat->quantity, 0, ',', ' ') }}</p>
+                                        @if($bat->title)
+                                            <p><span class="font-medium">Titre :</span> {{ $bat->title }}</p>
                                         @endif
                                     </div>
                                 </div>

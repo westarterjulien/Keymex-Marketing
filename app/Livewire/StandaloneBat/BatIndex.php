@@ -188,6 +188,9 @@ class BatIndex extends Component
 
         if ($this->statusFilter) {
             $query->where('status', $this->statusFilter);
+        } else {
+            // Par défaut, exclure les BATs convertis (ils sont dans l'historique)
+            $query->where('status', '!=', 'converted');
         }
 
         return view('livewire.standalone-bat.bat-index', [

@@ -7,13 +7,24 @@
                 Gerez vos BAT et convertissez-les en commandes apres validation
             </p>
         </div>
-        <a href="{{ route('standalone-bats.create') }}"
-           class="inline-flex items-center gap-2 px-4 py-2 bg-keymex-red hover:bg-keymex-red-hover text-white text-sm font-medium rounded-lg transition-colors">
-            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
-            </svg>
-            Nouveau BAT
-        </a>
+        <div class="flex items-center gap-3">
+            <a href="{{ route('standalone-bats.history') }}"
+               wire:navigate
+               class="inline-flex items-center gap-2 px-4 py-2 border border-gray-300 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-50 transition-colors">
+                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+                Historique
+            </a>
+            <a href="{{ route('standalone-bats.create') }}"
+               wire:navigate
+               class="inline-flex items-center gap-2 px-4 py-2 bg-keymex-red hover:bg-keymex-red-hover text-white text-sm font-medium rounded-lg transition-colors">
+                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                </svg>
+                Nouveau BAT
+            </a>
+        </div>
     </div>
 
     {{-- Flash Messages --}}

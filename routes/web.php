@@ -13,6 +13,7 @@ use App\Livewire\Settings\SocialMediaSettings;
 use App\Livewire\Settings\SsoSettings;
 use App\Livewire\Settings\StorageSettings;
 use App\Livewire\StandaloneBat\BatCreate;
+use App\Livewire\StandaloneBat\BatHistory;
 use App\Livewire\StandaloneBat\BatIndex;
 use App\Livewire\StandaloneBat\BatShow;
 use App\Livewire\StandaloneBat\BatValidation;
@@ -98,6 +99,7 @@ Route::middleware(['auth'])->group(function () {
     // Module BAT standalone
     Route::get('/bats', BatIndex::class)->name('standalone-bats.index');
     Route::get('/bats/creer', BatCreate::class)->name('standalone-bats.create');
+    Route::get('/bats/historique', BatHistory::class)->name('standalone-bats.history');
     Route::get('/bats/{bat}', BatShow::class)->name('standalone-bats.show');
 
     // Module Social Media Analytics
