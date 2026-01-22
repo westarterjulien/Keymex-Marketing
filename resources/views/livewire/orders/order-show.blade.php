@@ -534,20 +534,20 @@
                             @if(str_starts_with($order->standaloneBat->file_mime, 'image/'))
                                 <div class="bg-gradient-to-br from-gray-800 to-gray-900 p-4">
                                     <img
-                                        src="{{ asset('storage/' . $order->standaloneBat->file_path) }}"
+                                        src="{{ $order->standaloneBat->file_url }}"
                                         alt="{{ $order->standaloneBat->file_name }}"
                                         class="max-w-full h-auto max-h-48 mx-auto rounded-lg shadow-lg"
                                     >
                                 </div>
                             @else
                                 <iframe
-                                    src="{{ asset('storage/' . $order->standaloneBat->file_path) }}#toolbar=0&navpanes=0&view=FitH"
+                                    src="{{ $order->standaloneBat->file_url }}#toolbar=0&navpanes=0&view=FitH"
                                     class="w-full h-48 border-0"
                                 ></iframe>
                             @endif
                             <div class="px-4 py-3 bg-gradient-to-r from-gray-50 to-gray-100 flex items-center justify-between">
                                 <span class="text-xs text-gray-500 truncate">{{ $order->standaloneBat->file_name }}</span>
-                                <a href="{{ asset('storage/' . $order->standaloneBat->file_path) }}"
+                                <a href="{{ $order->standaloneBat->file_url }}"
                                    download="{{ $order->standaloneBat->file_name }}"
                                    class="text-xs font-medium text-keymex-red hover:text-keymex-red-hover">
                                     Telecharger
