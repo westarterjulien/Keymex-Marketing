@@ -20,6 +20,7 @@ use App\Livewire\StandaloneBat\BatValidation;
 use App\Livewire\Kpi\HebdoBizCustom;
 use App\Livewire\Kpi\HebdoBizMonthly;
 use App\Livewire\Kpi\HebdoBizWeekly;
+use App\Livewire\Kpi\HebdoBizYearly;
 use App\Livewire\Kpi\KeyPerformeurs;
 use App\Livewire\Stats\Dashboard;
 use App\Livewire\SocialMedia\Dashboard as SocialMediaDashboard;
@@ -87,6 +88,7 @@ Route::middleware(['auth'])->group(function () {
     // Module KPI Hebdo Biz
     Route::get('/kpi/hebdomadaire', HebdoBizWeekly::class)->name('kpi.weekly');
     Route::get('/kpi/mensuel', HebdoBizMonthly::class)->name('kpi.monthly');
+    Route::get('/kpi/annuel', HebdoBizYearly::class)->name('kpi.yearly');
     Route::get('/kpi/personnalise', HebdoBizCustom::class)->name('kpi.custom');
     Route::get('/kpi/key-performeurs', KeyPerformeurs::class)->name('kpi.performeurs');
 
