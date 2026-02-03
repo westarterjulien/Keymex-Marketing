@@ -20,7 +20,7 @@ RUN npm run build
 # Stage 2: PHP application
 FROM php:8.3-fpm-alpine AS php-base
 
-# Install system dependencies
+# Install system dependencies including Node.js, npm, and Chromium for Browsershot
 RUN apk add --no-cache \
     nginx \
     supervisor \
@@ -36,7 +36,20 @@ RUN apk add --no-cache \
     openssl-dev \
     autoconf \
     g++ \
-    make
+    make \
+    # Node.js and npm for Puppeteer/Browsershot
+    nodejs \
+    npm \
+    # Chromium and dependencies for headless browser
+    chromium \
+    nss \
+    freetype \
+    harfbuzz \
+    ca-certificates \
+    ttf-freefont \
+    # Fonts for proper text rendering
+    font-noto \
+    font-noto-emoji
 
 # Install PHP extensions
 RUN docker-php-ext-configure gd --with-freetype --with-jpeg \
@@ -78,11 +91,25 @@ COPY --from=node-builder --chown=www-data:www-data /app/public/build ./public/bu
 # Install PHP dependencies
 RUN composer install --no-dev --optimize-autoloader --no-interaction
 
+# Install Puppeteer for Browsershot (skip Chromium download since we use system Chromium)
+ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
+ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser
+
+# Set Browsershot paths for the container
+ENV BROWSERSHOT_NODE_BINARY=/usr/bin/node
+ENV BROWSERSHOT_NPM_BINARY=/usr/bin/npm
+ENV BROWSERSHOT_CHROME_PATH=/usr/bin/chromium-browser
+
+RUN npm install puppeteer --global
+
 # Publish Livewire assets as static files for production
 RUN php artisan livewire:publish --assets
 
 # Create storage symlink for public file access
 RUN php artisan storage:link
+
+# Create stories directory for story generation
+RUN mkdir -p /var/www/html/storage/app/public/stories
 
 # Set permissions
 RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache \
