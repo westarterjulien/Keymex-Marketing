@@ -12,17 +12,15 @@ class PropertyForSale extends Component
     public string $search = '';
     public bool $mongoDbError = false;
 
-    // Photo modal
-    public bool $showPhotoModal = false;
-    public array $modalPhotos = [];
-    public string $modalPropertyRef = '';
-
     // Communication RS modal
     public bool $showCommunicationModal = false;
     public string $communicationPropertyId = '';
     public string $communicationPropertyRef = '';
     public string $communicationDate = '';
     public bool $hasCommunication = false;
+
+    // Cached data
+    protected ?object $cachedProperties = null;
 
     protected MongoPropertyService $propertyService;
 
@@ -79,30 +77,19 @@ class PropertyForSale extends Component
         $this->closeCommunicationModal();
     }
 
-    public function openPhotoModal(array $photos, string $propertyRef): void
-    {
-        $this->modalPhotos = $photos;
-        $this->modalPropertyRef = $propertyRef;
-        $this->showPhotoModal = true;
-    }
-
-    public function closePhotoModal(): void
-    {
-        $this->showPhotoModal = false;
-        $this->modalPhotos = [];
-        $this->modalPropertyRef = '';
-    }
-
     public function render()
     {
         $properties = collect();
         $this->mongoDbError = false;
 
         try {
-            $properties = $this->propertyService->getPropertiesForSale();
+            // Only fetch from MongoDB if not cached
+            if ($this->cachedProperties === null) {
+                $this->cachedProperties = $this->propertyService->getPropertiesForSale();
+                $this->cachedProperties = $this->cachedProperties->filter(fn ($p) => !empty($p['photos']));
+            }
 
-            // Filtrer les biens sans photos
-            $properties = $properties->filter(fn ($p) => !empty($p['photos']));
+            $properties = $this->cachedProperties;
 
             if ($this->search) {
                 $search = strtolower($this->search);

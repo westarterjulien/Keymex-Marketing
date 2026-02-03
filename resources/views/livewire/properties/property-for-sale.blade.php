@@ -1,6 +1,18 @@
-<div>
+<div x-data="{
+    showPhotoModal: false,
+    modalPhotos: [],
+    modalPropertyRef: '',
+    openPhotoModal(photos, ref) {
+        this.modalPhotos = photos;
+        this.modalPropertyRef = ref;
+        this.showPhotoModal = true;
+    },
+    closePhotoModal() {
+        this.showPhotoModal = false;
+    }
+}">
     <div>
-        <h1 class="text-2xl font-bold text-gray-900">Biens a vendre</h1>
+        <h1 class="text-2xl font-bold text-gray-900">Biens à vendre</h1>
         <p class="mt-1 text-sm text-gray-500">Mandats exclusifs en cours de commercialisation</p>
     </div>
 
@@ -15,8 +27,8 @@
                 <div class="ml-3">
                     <h3 class="text-sm font-medium text-yellow-800">Connexion MongoDB indisponible</h3>
                     <p class="mt-1 text-sm text-yellow-700">
-                        Les donnees des biens immobiliers ne sont pas accessibles pour le moment.
-                        Veuillez reessayer plus tard ou contacter l'administrateur systeme.
+                        Les données des biens immobiliers ne sont pas accessibles pour le moment.
+                        Veuillez réessayer plus tard ou contacter l'administrateur système.
                     </p>
                 </div>
             </div>
@@ -37,7 +49,7 @@
                            type="search"
                            id="search"
                            class="block w-full rounded-md border-0 py-2 pl-10 pr-3 text-gray-900 ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-keymex-red sm:text-sm"
-                           placeholder="Rechercher par reference, ville ou conseiller...">
+                           placeholder="Rechercher par référence, ville ou conseiller...">
                 </div>
             </div>
             <div class="flex items-center text-sm text-gray-500">
@@ -62,7 +74,7 @@
                             <img src="{{ $property['photos'][0] }}"
                                  alt="{{ $property['reference'] }}"
                                  class="h-full w-full object-cover cursor-pointer"
-                                 wire:click="openPhotoModal({{ json_encode($property['photos']) }}, '{{ $property['reference'] }}')" />
+                                 @click="openPhotoModal({{ json_encode($property['photos']) }}, '{{ $property['reference'] }}')" />
                             @if(count($property['photos']) > 1)
                                 <span class="absolute bottom-1 right-1 bg-black/70 text-white text-[10px] px-1.5 py-0.5 rounded">
                                     {{ count($property['photos']) }} photos
@@ -140,6 +152,17 @@
                                 @endif
                             </button>
                         </div>
+
+                        {{-- Générer Story --}}
+                        <div class="mt-2 pt-2 border-t border-gray-100">
+                            <button onclick="openPhotoSelector('{{ $property['id'] }}', '{{ $property['reference'] }}', {{ json_encode($property['photos'] ?? []) }})"
+                                    class="w-full flex items-center justify-center gap-2 px-3 py-2 text-xs font-medium text-white bg-gradient-to-r from-pink-500 to-purple-500 rounded-lg hover:from-pink-600 hover:to-purple-600 transition-all">
+                                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                </svg>
+                                Générer Story Instagram
+                            </button>
+                        </div>
                     </div>
                 </div>
             @empty
@@ -148,10 +171,10 @@
                         <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M2.25 21h19.5m-18-18v18m10.5-18v18m6-13.5V21M6.75 6.75h.75m-.75 3h.75m-.75 3h.75m3-6h.75m-.75 3h.75m-.75 3h.75M6.75 21v-3.375c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21M3 3h12m-.75 4.5H21m-3.75 3.75h.008v.008h-.008v-.008zm0 3h.008v.008h-.008v-.008zm0 3h.008v.008h-.008v-.008z" />
                         </svg>
-                        <h3 class="mt-2 text-sm font-medium text-gray-900">Aucun bien a vendre</h3>
+                        <h3 class="mt-2 text-sm font-medium text-gray-900">Aucun bien à vendre</h3>
                         <p class="mt-1 text-sm text-gray-500">
                             @if($search)
-                                Aucun resultat pour "{{ $search }}".
+                                Aucun résultat pour "{{ $search }}".
                             @else
                                 Aucun bien en cours de commercialisation.
                             @endif
@@ -162,35 +185,38 @@
         </div>
     </div>
 
-    {{-- Modal Photos --}}
-    @if($showPhotoModal)
-        <div class="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="photo-modal-title" role="dialog" aria-modal="true">
-            <div class="flex min-h-screen items-center justify-center px-4 py-4 text-center">
-                <div class="fixed inset-0 bg-black bg-opacity-75 transition-opacity" wire:click="closePhotoModal"></div>
+    {{-- Modal Photos (Alpine.js) --}}
+    <div x-show="showPhotoModal"
+         x-cloak
+         class="fixed inset-0 z-50 overflow-y-auto"
+         aria-labelledby="photo-modal-title"
+         role="dialog"
+         aria-modal="true">
+        <div class="flex min-h-screen items-center justify-center px-4 py-4 text-center">
+            <div class="fixed inset-0 bg-black bg-opacity-75 transition-opacity" @click="closePhotoModal()"></div>
 
-                <div class="relative z-10 w-full max-w-4xl transform overflow-hidden rounded-lg bg-white text-left shadow-xl transition-all">
-                    <div class="flex items-center justify-between border-b border-gray-200 px-4 py-3">
-                        <h3 class="text-lg font-medium text-gray-900">Photos - {{ $modalPropertyRef }}</h3>
-                        <button wire:click="closePhotoModal" class="text-gray-400 hover:text-gray-500">
-                            <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                            </svg>
-                        </button>
-                    </div>
+            <div class="relative z-10 w-full max-w-4xl transform overflow-hidden rounded-lg bg-white text-left shadow-xl transition-all">
+                <div class="flex items-center justify-between border-b border-gray-200 px-4 py-3">
+                    <h3 class="text-lg font-medium text-gray-900">Photos - <span x-text="modalPropertyRef"></span></h3>
+                    <button @click="closePhotoModal()" class="text-gray-400 hover:text-gray-500">
+                        <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
 
-                    <div class="p-4 max-h-[70vh] overflow-y-auto">
-                        <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
-                            @foreach($modalPhotos as $photo)
-                                <a href="{{ $photo }}" target="_blank" class="block">
-                                    <img src="{{ $photo }}" alt="Photo" class="w-full h-48 object-cover rounded-lg hover:opacity-90 transition-opacity" />
-                                </a>
-                            @endforeach
-                        </div>
+                <div class="p-4 max-h-[70vh] overflow-y-auto">
+                    <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+                        <template x-for="photo in modalPhotos" :key="photo">
+                            <a :href="photo" target="_blank" class="block">
+                                <img :src="photo" alt="Photo" class="w-full h-48 object-cover rounded-lg hover:opacity-90 transition-opacity" />
+                            </a>
+                        </template>
                     </div>
                 </div>
             </div>
         </div>
-    @endif
+    </div>
 
     {{-- Modal Communication RS --}}
     @if($showCommunicationModal)
@@ -217,7 +243,7 @@
                                wire:model="communicationDate"
                                class="block w-full rounded-md border-0 py-2 px-3 text-gray-900 ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-keymex-red sm:text-sm" />
                         <p class="mt-2 text-xs text-gray-500">
-                            Selectionnez la date de publication sur les reseaux sociaux (passee, aujourd'hui ou future).
+                            Sélectionnez la date de publication sur les réseaux sociaux (passée, aujourd'hui ou future).
                         </p>
                     </div>
 
@@ -248,4 +274,137 @@
             </div>
         </div>
     @endif
+
+    {{-- Modal Photo Selector - Design moderne glassmorphism --}}
+    <div id="photo-selector-modal" class="fixed inset-0 z-50 hidden" aria-labelledby="photo-selector-title" role="dialog" aria-modal="true">
+        {{-- Backdrop avec blur --}}
+        <div class="fixed inset-0 bg-gradient-to-br from-purple-900/40 via-pink-900/40 to-orange-900/40 backdrop-blur-sm transition-opacity" onclick="closePhotoSelector()"></div>
+
+        <div class="fixed inset-0 flex items-center justify-center p-4">
+            <div class="relative w-full max-w-3xl transform overflow-hidden rounded-2xl bg-white/95 backdrop-blur-xl shadow-2xl ring-1 ring-white/20 transition-all">
+                {{-- Header avec degrage --}}
+                <div class="relative bg-gradient-to-r from-pink-500 via-purple-500 to-indigo-500 px-6 py-4">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-3">
+                            <div class="flex h-10 w-10 items-center justify-center rounded-full bg-white/20 backdrop-blur">
+                                <svg class="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                </svg>
+                            </div>
+                            <div>
+                                <h3 class="text-lg font-semibold text-white">Choisir la photo</h3>
+                                <p class="text-sm text-white/80"><span id="photo-selector-ref"></span></p>
+                            </div>
+                        </div>
+                        <button onclick="closePhotoSelector()" class="flex h-8 w-8 items-center justify-center rounded-full bg-white/20 text-white hover:bg-white/30 transition-colors">
+                            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+
+                {{-- Body --}}
+                <div class="p-6">
+                    <p class="text-sm text-gray-600 mb-4 flex items-center gap-2">
+                        <svg class="h-4 w-4 text-pink-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        Cliquez sur une photo pour generer la story Instagram
+                    </p>
+                    <div id="photo-selector-grid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 max-h-[60vh] overflow-y-auto pr-2">
+                    </div>
+                </div>
+
+                {{-- Footer --}}
+                <div class="border-t border-gray-100 bg-gray-50/80 px-6 py-3">
+                    <div class="flex items-center justify-between text-xs text-gray-500">
+                        <span id="photo-count-text">0 photos disponibles</span>
+                        <span class="flex items-center gap-1">
+                            <svg class="h-3.5 w-3.5" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073z"/>
+                            </svg>
+                            Story Instagram
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {{-- Modal Story Generated - Design moderne --}}
+    <div id="story-modal" class="fixed inset-0 z-50 hidden" aria-labelledby="story-modal-title" role="dialog" aria-modal="true">
+        {{-- Backdrop avec blur --}}
+        <div class="fixed inset-0 bg-gradient-to-br from-purple-900/50 via-pink-900/50 to-orange-900/50 backdrop-blur-md transition-opacity" onclick="closeStoryModal()"></div>
+
+        <div class="fixed inset-0 flex items-center justify-center p-4">
+            <div class="relative w-full max-w-sm transform overflow-hidden rounded-2xl bg-white/95 backdrop-blur-xl shadow-2xl ring-1 ring-white/20 transition-all">
+                {{-- Header avec degrage --}}
+                <div class="relative bg-gradient-to-r from-pink-500 via-purple-500 to-indigo-500 px-5 py-3">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-2">
+                            <svg class="h-5 w-5 text-white" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073z"/>
+                            </svg>
+                            <h3 class="text-base font-semibold text-white">Story Instagram</h3>
+                        </div>
+                        <button onclick="closeStoryModal()" class="flex h-7 w-7 items-center justify-center rounded-full bg-white/20 text-white hover:bg-white/30 transition-colors">
+                            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="p-5">
+                    {{-- Loading state --}}
+                    <div id="story-loading" class="flex flex-col items-center justify-center py-12">
+                        <div class="relative">
+                            <div class="h-16 w-16 rounded-full border-4 border-purple-100"></div>
+                            <div class="absolute top-0 left-0 h-16 w-16 rounded-full border-4 border-transparent border-t-pink-500 animate-spin"></div>
+                        </div>
+                        <p class="mt-5 text-sm font-medium text-gray-700">Generation en cours...</p>
+                        <p class="mt-1 text-xs text-gray-400">Preparation de votre story</p>
+                    </div>
+
+                    {{-- Result state --}}
+                    <div id="story-result" class="hidden">
+                        <div class="relative rounded-xl overflow-hidden shadow-lg ring-1 ring-black/5">
+                            <img id="story-image" src="" alt="Story generee" class="w-full" />
+                        </div>
+                        <div class="mt-5 space-y-3">
+                            <a id="story-download" href="" download class="flex w-full items-center justify-center gap-2 px-4 py-3 text-sm font-semibold text-white bg-gradient-to-r from-pink-500 via-purple-500 to-indigo-500 rounded-xl hover:opacity-90 transition-opacity shadow-lg shadow-purple-500/25">
+                                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                                </svg>
+                                Telecharger la story
+                            </a>
+                            <button onclick="closeStoryModal()" class="flex w-full items-center justify-center px-4 py-2.5 text-sm font-medium text-gray-600 bg-gray-100 rounded-xl hover:bg-gray-200 transition-colors">
+                                Fermer
+                            </button>
+                        </div>
+                    </div>
+
+                    {{-- Error state --}}
+                    <div id="story-error" class="hidden text-center py-10">
+                        <div class="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-red-100">
+                            <svg class="h-7 w-7 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                            </svg>
+                        </div>
+                        <p class="mt-4 text-sm font-medium text-gray-900">Erreur de generation</p>
+                        <p id="story-error-message" class="mt-2 text-sm text-red-600"></p>
+                        <button onclick="closeStoryModal()" class="mt-5 px-4 py-2 text-sm font-medium text-gray-600 bg-gray-100 rounded-xl hover:bg-gray-200 transition-colors">
+                            Fermer
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
 </div>
+
+@push('scripts')
+<script src="{{ asset('js/property-for-sale-story.js') }}"></script>
+@endpush

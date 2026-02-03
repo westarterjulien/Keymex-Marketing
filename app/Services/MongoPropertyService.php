@@ -427,11 +427,13 @@ class MongoPropertyService
             $photos = $rawData['products_photos'] ?? [];
             $photosArray = is_array($photos) ? $photos : (array) $photos;
 
-            // Récupérer les URLs des photos (triées par sort_order)
+            // Récupérer les URLs des photos HD uniquement (triées par sort_order)
             $photoUrls = collect($photosArray)
                 ->sortBy('sort_order')
                 ->map(fn($photo) => $photo['chemin'] ?? null)
                 ->filter()
+                ->filter(fn($url) => !str_contains($url, '.mid.jpg') && !str_contains($url, '.red.jpg'))
+                ->unique()
                 ->values()
                 ->toArray();
 
@@ -468,10 +470,13 @@ class MongoPropertyService
         $photos = $rawData['products_photos'] ?? [];
         $photosArray = is_array($photos) ? $photos : (array) $photos;
 
+        // Photos HD uniquement (exclure .mid.jpg et .red.jpg)
         return collect($photosArray)
             ->sortBy('sort_order')
             ->map(fn($photo) => $photo['chemin'] ?? null)
             ->filter()
+            ->filter(fn($url) => !str_contains($url, '.mid.jpg') && !str_contains($url, '.red.jpg'))
+            ->unique()
             ->values()
             ->toArray();
     }
@@ -498,15 +503,31 @@ class MongoPropertyService
 
     /**
      * Trouve un bien par son ID MongoDB
+     * Cherche d'abord dans sale_files, puis dans properties
      */
     public function find(string $id): ?array
     {
+        // Chercher d'abord dans sale_files (compromis et vendus)
         $property = DB::connection($this->connection)
             ->table($this->collection)
             ->where('_id', $id)
             ->first();
 
-        return $property ? $this->formatProperty($property) : null;
+        if ($property) {
+            return $this->formatProperty($property);
+        }
+
+        // Si pas trouvé, chercher dans properties (biens à vendre)
+        $property = DB::connection($this->connection)
+            ->table('properties')
+            ->where('_id', $id)
+            ->first();
+
+        if ($property) {
+            return $this->formatPropertyForSale($property);
+        }
+
+        return null;
     }
 
     /**
@@ -660,13 +681,15 @@ class MongoPropertyService
             $advisorName = trim("$prenom $nom");
         }
 
-        // Photos
+        // Photos HD uniquement (exclure .mid.jpg et .red.jpg)
         $photos = $rawData['products_photos'] ?? [];
         $photosArray = is_array($photos) ? $photos : (is_object($photos) ? (array) $photos : []);
         $photoUrls = collect($photosArray)
             ->sortBy('sort_order')
             ->map(fn($photo) => is_array($photo) ? ($photo['chemin'] ?? null) : (is_object($photo) ? ($photo->chemin ?? null) : null))
             ->filter()
+            ->filter(fn($url) => !str_contains($url, '.mid.jpg') && !str_contains($url, '.red.jpg'))
+            ->unique()
             ->values()
             ->toArray();
 
@@ -759,9 +782,9 @@ class MongoPropertyService
             ? (int) $mandateDate->diffInDays($compromisDate)
             : null;
 
-        // Calcul du délai mandat → vente (pour les biens vendus)
-        $saleDuration = ($mandateDate && $saleDate)
-            ? (int) $mandateDate->diffInDays($saleDate)
+        // Calcul du délai mandat → compromis (pour les biens vendus)
+        $saleDuration = ($mandateDate && $compromisDate)
+            ? (int) $mandateDate->diffInDays($compromisDate)
             : null;
 
         // Adresse

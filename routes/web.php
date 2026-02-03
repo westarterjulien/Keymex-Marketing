@@ -27,6 +27,8 @@ use App\Livewire\SocialMedia\Dashboard as SocialMediaDashboard;
 use App\Livewire\SocialMedia\AiAssistant as SocialMediaAiAssistant;
 use App\Livewire\Signature\MySignature;
 use App\Http\Controllers\SignatureAuthController;
+use App\Http\Controllers\StoryController;
+use App\Http\Controllers\MediaController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -109,6 +111,17 @@ Route::middleware(['auth'])->group(function () {
     // Module Social Media Analytics
     Route::get('/social-media', SocialMediaDashboard::class)->name('social-media.dashboard');
     Route::get('/social-media/assistant', SocialMediaAiAssistant::class)->name('social-media.assistant');
+
+    // Story Generator
+    Route::post('/stories/generate/{propertyId}/{type}', [StoryController::class, 'generate'])->name('stories.generate');
+    Route::get('/stories/preview/{type}', [StoryController::class, 'preview'])->name('stories.preview');
+    Route::get('/stories/download/{filename}', [StoryController::class, 'download'])->name('stories.download');
+
+    // Media Library
+    Route::get('/stories/medias', [MediaController::class, 'index'])->name('stories.media');
+    Route::post('/stories/medias', [MediaController::class, 'store'])->name('stories.media.store');
+    Route::delete('/stories/medias/{media}', [MediaController::class, 'destroy'])->name('stories.media.destroy');
+    Route::get('/stories/medias/{media}/url', [MediaController::class, 'copyUrl'])->name('stories.media.url');
 });
 
 // Route publique pour validation BAT (avec token)

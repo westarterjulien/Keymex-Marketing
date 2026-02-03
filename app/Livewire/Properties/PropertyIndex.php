@@ -5,8 +5,10 @@ namespace App\Livewire\Properties;
 use App\Models\PropertyCommunication;
 use App\Services\MongoPropertyService;
 use Carbon\Carbon;
+use Livewire\Attributes\Layout;
 use Livewire\Component;
 
+#[Layout('components.layouts.app')]
 class PropertyIndex extends Component
 {
     public string $activeTab = 'compromis';
@@ -14,17 +16,17 @@ class PropertyIndex extends Component
     public int $soldDays = 30;
     public bool $mongoDbError = false;
 
-    // Photo modal
-    public bool $showPhotoModal = false;
-    public array $modalPhotos = [];
-    public string $modalPropertyRef = '';
-
     // Communication RS modal
     public bool $showCommunicationModal = false;
     public string $communicationPropertyId = '';
     public string $communicationPropertyRef = '';
     public string $communicationDate = '';
     public bool $hasCommunication = false;
+
+    // Cached data to avoid refetching on every render
+    protected ?object $cachedCompromisProperties = null;
+    protected ?object $cachedSoldProperties = null;
+    protected ?string $cachedTab = null;
 
     protected MongoPropertyService $propertyService;
 
@@ -102,32 +104,24 @@ class PropertyIndex extends Component
         $this->closeCommunicationModal();
     }
 
-    public function openPhotoModal(array $photos, string $propertyRef): void
-    {
-        $this->modalPhotos = $photos;
-        $this->modalPropertyRef = $propertyRef;
-        $this->showPhotoModal = true;
-    }
-
-    public function closePhotoModal(): void
-    {
-        $this->showPhotoModal = false;
-        $this->modalPhotos = [];
-        $this->modalPropertyRef = '';
-    }
-
     public function render()
     {
         $compromisProperties = collect();
         $soldProperties = collect();
         $this->mongoDbError = false;
 
+        // Only fetch from MongoDB if tab changed or data not cached
+        $needsFetch = $this->cachedTab !== $this->activeTab;
+
         try {
             if ($this->activeTab === 'compromis') {
-                $compromisProperties = $this->propertyService->getCompromisProperties();
+                if ($needsFetch || $this->cachedCompromisProperties === null) {
+                    $this->cachedCompromisProperties = $this->propertyService->getCompromisProperties();
+                    $this->cachedCompromisProperties = $this->cachedCompromisProperties->filter(fn ($p) => !empty($p['photos']));
+                    $this->cachedTab = $this->activeTab;
+                }
 
-                // Filtrer les biens sans photos
-                $compromisProperties = $compromisProperties->filter(fn ($p) => !empty($p['photos']));
+                $compromisProperties = $this->cachedCompromisProperties;
 
                 if ($this->search) {
                     $search = strtolower($this->search);
@@ -138,11 +132,13 @@ class PropertyIndex extends Component
                     });
                 }
             } elseif ($this->activeTab === 'vendus') {
-                // Biens vendus (avec date d'acte)
-                $soldProperties = $this->propertyService->getSoldProperties(100);
+                if ($needsFetch || $this->cachedSoldProperties === null) {
+                    $this->cachedSoldProperties = $this->propertyService->getSoldProperties(100);
+                    $this->cachedSoldProperties = $this->cachedSoldProperties->filter(fn ($p) => !empty($p['photos']));
+                    $this->cachedTab = $this->activeTab;
+                }
 
-                // Filtrer les biens sans photos
-                $soldProperties = $soldProperties->filter(fn ($p) => !empty($p['photos']));
+                $soldProperties = $this->cachedSoldProperties;
 
                 if ($this->search) {
                     $search = strtolower($this->search);
